@@ -126,6 +126,11 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
         onDelete={(item) => onDelete('tickets', item.id)}
         statusOptions={['Aktif', 'Dipakai', 'Dibatalkan']}
         getStatus={(item) => item.status}
+        stats={page === 'myTickets' ? [
+          { label: 'Total Tiket', value: String(tickets.length) },
+          { label: 'Valid', value: String(tickets.filter((ticket) => ticket.status === 'Aktif').length) },
+          { label: 'Terpakai', value: String(tickets.filter((ticket) => ticket.status === 'Dipakai').length) },
+        ] : undefined}
       />
     )
   }
