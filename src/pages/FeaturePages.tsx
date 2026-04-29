@@ -451,12 +451,15 @@ function TablePage<T extends { id: number }>({
         }
       />
       {stats && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(150px,210px))] gap-3">
           {stats.map((stat) => (
-            <Card key={stat.label}>
-              <CardContent className="pt-6">
-                <div className="text-sm text-[var(--muted-foreground)]">{stat.label}</div>
-                <div className="text-2xl font-bold mt-1">{stat.value}</div>
+            <Card key={stat.label} className="overflow-hidden">
+              <CardContent className="p-5">
+                <div className="mb-3 h-1 w-10 rounded-full bg-[var(--primary)]" />
+                <div className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+                  {stat.label}
+                </div>
+                <div className="mt-1 text-2xl font-bold leading-none text-[var(--foreground)]">{stat.value}</div>
               </CardContent>
             </Card>
           ))}

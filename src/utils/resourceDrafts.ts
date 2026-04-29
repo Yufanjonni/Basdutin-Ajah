@@ -1,5 +1,4 @@
-import type { AppData, Artist, EventItem, Order, Promotion, Seat, Ticket, TicketCategory, User, Venue } from '../types'
-import type { ResourceDialogState, ResourceDraft, ResourceKind } from '../components/ResourceDialog'
+import type { AppData, Artist, EventItem, Order, Promotion, Seat, Ticket, TicketCategory, User, Venue, ResourceDialogState, ResourceDraft, ResourceKind } from '../types'
 
 export function createDefaultDraft(kind: ResourceKind, data: AppData): ResourceDraft {
   if (kind === 'venues') {
@@ -254,7 +253,13 @@ export function deleteResource(kind: ResourceKind, id: number, data: AppData): A
       seats: ticket ? updateSeatStatus(data.seats, ticket.seatCode, 'Tersedia') : data.seats,
     }
   }
-  return { ...data, [kind]: data[kind].filter((item) => item.id !== id) }
+  if (kind === 'venues') return { ...data, venues: data.venues.filter((item) => item.id !== id) }
+  if (kind === 'events') return { ...data, events: data.events.filter((item) => item.id !== id) }
+  if (kind === 'artists') return { ...data, artists: data.artists.filter((item) => item.id !== id) }
+  if (kind === 'seats') return { ...data, seats: data.seats.filter((item) => item.id !== id) }
+  if (kind === 'ticketCategories') return { ...data, ticketCategories: data.ticketCategories.filter((item) => item.id !== id) }
+  if (kind === 'orders') return { ...data, orders: data.orders.filter((item) => item.id !== id) }
+  return { ...data, promotions: data.promotions.filter((item) => item.id !== id) }
 }
 
 export function getResourceName(kind: ResourceKind, id: number, data: AppData) {

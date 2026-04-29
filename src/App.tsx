@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { ConfirmModal } from './components/Modal'
-import { ResourceDialog, type ResourceDialogState, type ResourceKind } from './components/ResourceDialog'
+import { ResourceDialog } from './components/ResourceDialog'
 import { TopNav } from './components/TopNav'
 import { emptyRegisterForm, initialData, initialUsers } from './data/mockData'
 import { AuthLayout, BrandSide, LoginPanel, RegisterPanel, RolePanel } from './pages/AuthPages'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { FeaturePage } from './pages/FeaturePages'
 import { DashboardPage, ProfilePage, type PasswordForm, type ProfileForm } from './pages/ProfilePages'
-import type { AppData, EventItem, Page, RegisterForm, Role, Toast, User } from './types'
+import type { AppData, EventItem, Page, RegisterForm, Role, Toast, User, ResourceDialogState, ResourceKind } from './types'
 import {
   createDefaultDraft,
   createDraftFromData,
-} from './components/ResourceDialog'
+} from './utils/resourceDrafts'
 import { applyResourceDraft, deleteResource as deleteResourceFromData, getResourceName, validateResourceDraft } from './utils/resourceDrafts'
 import { loadStored, saveStored } from './utils/storage'
 import { validateRegister } from './utils/validation'

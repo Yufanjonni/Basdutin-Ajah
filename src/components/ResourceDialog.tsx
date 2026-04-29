@@ -1,20 +1,11 @@
+import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Button } from './ui/Button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/Dialog'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/Select'
-import type { AppData } from '../types'
-
-export type ResourceKind = keyof AppData
-export type ResourceDraft = Record<string, string>
-
-export type ResourceDialogState = {
-  kind: ResourceKind
-  mode: 'create' | 'update'
-  id?: number
-  draft: ResourceDraft
-}
+import type { AppData, ResourceDialogState, ResourceDraft, ResourceKind } from '../types'
 
 type ResourceDialogProps = {
   state: ResourceDialogState
@@ -200,7 +191,7 @@ function Fields({
         <FieldInput label="Jumlah" value={state.draft.quantity} field="quantity" type="number" onChange={onDraftChange} required />
         <FieldInput label="Total" value={state.draft.total} field="total" type="number" onChange={onDraftChange} required />
         <FieldSelect
-          label="Status"
+          label="Status Pembayaran"
           value={state.draft.status}
           field="status"
           options={['Menunggu', 'Dibayar', 'Dibatalkan']}
@@ -210,7 +201,119 @@ function Fields({
     )
   }
 
+  if (kind === 'tickets') {
+    return <TicketFields state={state} data={data} onDraftChange={onDraftChange} />
+  }
+
   return null
+}
+
+function TicketFields({
+  state,
+  data,
+  onDraftChange,
+}: {
+  state: ResourceDialogState
+  data: AppData
+  onDraftChange: (draft: ResourceDraft) => void
+}) {
+  const [selectedOrder, setSelectedOrder] = useState(state.draft.orderCode || '')
+  const [selectedCategory, setSelectedCategory] = useState(state.draft.category || '')
+
+  const orderOptions = data.orders.map(o => o.code)
+  const selectedOrderData = data.orders.find(o => o.code === selectedOrder)
+  const eventName = selectedOrderData?.event || ''
+  
+  const categoryOptions = eventName 
+    ? data.ticketCategories.filter(c => c.event === eventName).map(c => c.name)
+    : []
+  
+  const venueForEvent = data.events.find(e => e.title === eventName)?.venue || ''
+  const venueData = data.venues.find(v => v.name === venueForEvent)
+  const isReservedSeating = venueData?.seatingType === 'Nomor kursi'
+  
+  const availableSeats = isReservedSeating
+    ? data.seats.filter(s => s.venue === venueForEvent && s.status === 'Tersedia').map(s => `${s.section}-${s.row}${s.number}`)
+    : []
+
+  const isUpdate = state.mode === 'update'
+
+  if (isUpdate) {
+    const currentTicket = data.tickets.find(t => t.id === state.id)
+    const currentEvent = currentTicket?.event || ''
+    const currentVenue = data.events.find(e => e.title === currentEvent)?.venue || ''
+    const currentVenueData = data.venues.find(v => v.name === currentVenue)
+    const isCurrentReserved = currentVenueData?.seatingType === 'Nomor kursi'
+    
+    const currentSeatOptions = isCurrentReserved
+      ? data.seats.filter(s => s.venue === currentVenue && s.status === 'Tersedia').map(s => `${s.section}-${s.row}${s.number}`)
+      : []
+
+    return (
+      <>
+        <FieldInput label="Kode Tiket" value={state.draft.code} field="code" onChange={onDraftChange} readOnly />
+        <FieldSelect
+          label="Status"
+          value={state.draft.status}
+          field="status"
+          options={['Aktif', 'Dipakai', 'Dibatalkan']}
+          onChange={onDraftChange}
+        />
+        {isCurrentReserved && (
+          <FieldSelect
+            label="Kursi"
+            value={state.draft.seatCode}
+            field="seatCode"
+            options={[state.draft.seatCode, 'Tanpa Kursi', ...currentSeatOptions].filter((v, i, a) => a.indexOf(v) === i)}
+            onChange={onDraftChange}
+          />
+        )}
+      </>
+    )
+  }
+
+  return (
+    <>
+      <FieldSelect
+        label="Order"
+        value={selectedOrder}
+        field="orderCode"
+        options={orderOptions}
+        onChange={(draft) => {
+          const val = draft.orderCode
+          if (val) {
+            setSelectedOrder(val)
+            setSelectedCategory('')
+            onDraftChange({ ...state.draft, orderCode: val, category: '', seatCode: '' } as ResourceDraft)
+          }
+        }}
+      />
+      {selectedOrder && (
+        <FieldSelect
+          label="Kategori Tiket"
+          value={selectedCategory}
+          field="category"
+          options={categoryOptions}
+          onChange={(draft) => {
+            const val = draft.category
+            if (val) {
+              setSelectedCategory(val)
+              onDraftChange({ ...state.draft, category: val } as ResourceDraft)
+            }
+          }}
+        />
+      )}
+      {isReservedSeating && selectedOrder && selectedCategory && (
+        <FieldSelect
+          label="Kursi"
+          value={state.draft.seatCode}
+          field="seatCode"
+          options={['Tanpa Kursi', ...availableSeats]}
+          onChange={onDraftChange}
+        />
+      )}
+    </>
+  )
 }
 
 function FieldInput({
@@ -220,6 +323,7 @@ function FieldInput({
   type = 'text',
   placeholder,
   required,
+  readOnly,
   onChange,
 }: {
   label: string
@@ -228,6 +332,7 @@ function FieldInput({
   type?: string
   placeholder?: string
   required?: boolean
+  readOnly?: boolean
   onChange: (draft: ResourceDraft) => void
 }) {
   return (
@@ -240,6 +345,8 @@ function FieldInput({
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...{ [field]: e.target.value } } as ResourceDraft)}
         placeholder={placeholder}
         required={required}
+        readOnly={readOnly}
+        className={readOnly ? 'bg-[var(--muted)]' : ''}
       />
     </div>
   )
@@ -297,48 +404,4 @@ function FieldSelect({
       </Select>
     </div>
   )
-}
-
-// Helper functions kept from original
-export function createDefaultDraft(kind: ResourceKind, data: AppData): ResourceDraft {
-  if (kind === 'venues') return { name: '', address: '', city: '', capacity: '', seatingType: 'Nomor kursi' }
-  if (kind === 'events') return { title: '', date: '', time: '', venue: data.venues[0]?.name ?? '', artist: data.artists[0]?.name ?? '', category: '', price: '', quota: '', description: '', organizerId: String(data.events[0]?.organizerId ?? 2) }
-  if (kind === 'artists') return { name: '', genre: '', country: '' }
-  if (kind === 'seats') return { venue: data.venues[0]?.name ?? '', section: '', row: '', number: '', status: 'Tersedia' }
-  if (kind === 'ticketCategories') return { event: data.events[0]?.title ?? '', name: '', price: '', quota: '' }
-  if (kind === 'promotions') return { code: '', title: '', discountType: 'Persentase', value: '', startDate: '', endDate: '', usageLimit: '' }
-  if (kind === 'orders') return { code: '', orderDate: '', customer: '', event: '', ticketCategory: '', quantity: '', promoCode: '', total: '', status: 'Menunggu' }
-  return {}
-}
-
-export function createDraftFromData(kind: ResourceKind, appData: AppData, id: number): ResourceDraft {
-  if (kind === 'venues') {
-    const v = appData.venues.find((x) => x.id === id)
-    return v ? { name: v.name, address: v.address, city: v.city, capacity: String(v.capacity), seatingType: v.seatingType } : {}
-  }
-  if (kind === 'events') {
-    const e = appData.events.find((x) => x.id === id)
-    return e ? { title: e.title, date: e.date, time: e.time, venue: e.venue, artist: e.artist, category: e.category, price: String(e.price), quota: String(e.quota), description: e.description, organizerId: String(e.organizerId) } : {}
-  }
-  if (kind === 'artists') {
-    const a = appData.artists.find((x) => x.id === id)
-    return a ? { name: a.name, genre: a.genre, country: a.country } : {}
-  }
-  if (kind === 'seats') {
-    const s = appData.seats.find((x) => x.id === id)
-    return s ? { venue: s.venue, section: s.section, row: s.row, number: s.number, status: s.status } : {}
-  }
-  if (kind === 'ticketCategories') {
-    const c = appData.ticketCategories.find((x) => x.id === id)
-    return c ? { event: c.event, name: c.name, price: String(c.price), quota: String(c.quota) } : {}
-  }
-  if (kind === 'promotions') {
-    const p = appData.promotions.find((x) => x.id === id)
-    return p ? { code: p.code, title: p.title, discountType: p.discountType, value: p.value, startDate: p.startDate, endDate: p.endDate, usageLimit: String(p.usageLimit) } : {}
-  }
-  if (kind === 'orders') {
-    const o = appData.orders.find((x) => x.id === id)
-    return o ? { code: o.code, orderDate: o.orderDate, customer: o.customer, event: o.event, ticketCategory: o.ticketCategory, quantity: String(o.quantity), promoCode: o.promoCode, total: String(o.total), status: o.status } : {}
-  }
-  return {}
 }

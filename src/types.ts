@@ -139,3 +139,14 @@ export type Toast = {
   type: 'success' | 'error'
   text: string
 }
+
+export type ResourceKind = keyof AppData
+
+export type ResourceDraft = Record<string, string>
+
+export type ResourceDialogState = {
+  kind: ResourceKind
+  mode: 'create' | 'update'
+  id?: number
+  draft: ResourceDraft
+}
