@@ -50,8 +50,7 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
     return (
       <VenuePage
         venues={data.venues}
-        canCreate={user.role !== 'customer'}
-        canEdit={user.role !== 'customer'}
+        canManage={user.role !== 'customer'}
         onAdd={() => onAdd('venues')}
         onUpdate={(id) => onUpdate('venues', id)}
         onDelete={(id) => onDelete('venues', id)}
