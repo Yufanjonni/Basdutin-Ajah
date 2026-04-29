@@ -33,6 +33,10 @@ export function ResourceDialog({ state, data, open, onDraftChange, onOpenChange,
       ? state.mode === 'create'
         ? 'Buat Acara Baru'
         : 'Update Acara'
+      : state.kind === 'promotions'
+        ? state.mode === 'create'
+          ? 'Buat Promo'
+          : 'Update Promotion'
       : `${state.mode === 'create' ? 'Tambah' : 'Update'} ${titles[state.kind]}`
   const updateDraft = (draft: ResourceDraft) => onDraftChange({ ...state.draft, ...draft })
 
@@ -49,7 +53,13 @@ export function ResourceDialog({ state, data, open, onDraftChange, onOpenChange,
               Batal
             </Button>
             <Button type="submit">
-              {state.kind === 'events' && state.mode === 'create' ? 'Buat Acara' : state.mode === 'create' ? 'Tambah' : 'Simpan'}
+              {state.kind === 'events' && state.mode === 'create'
+                ? 'Buat Acara'
+                : state.kind === 'promotions' && state.mode === 'create'
+                  ? 'Buat'
+                  : state.mode === 'create'
+                    ? 'Tambah'
+                    : 'Simpan'}
             </Button>
           </div>
         </form>
@@ -78,7 +88,7 @@ function Fields({
         <FieldInput label="Kapasitas" value={state.draft.capacity} field="capacity" type="number" onChange={onDraftChange} required />
         <FieldCheckbox
           label="Has Reserved Seating"
-          checked={state.draft.hasReservedSeating === 'true' || state.draft.seatingType === 'Nomor kursi'}
+          checked={state.draft.hasReservedSeating === 'true'}
           field="hasReservedSeating"
           onChange={onDraftChange}
         />
@@ -173,7 +183,6 @@ function Fields({
     return (
       <>
         <FieldInput label="Kode Promo" value={state.draft.code} field="code" onChange={onDraftChange} required />
-        <FieldInput label="Judul" value={state.draft.title} field="title" onChange={onDraftChange} required />
         <FieldSelect
           label="Tipe Diskon"
           value={state.draft.discountType}
@@ -181,7 +190,7 @@ function Fields({
           options={['Persentase', 'Nominal']}
           onChange={onDraftChange}
         />
-        <FieldInput label="Nilai" value={state.draft.value} field="value" onChange={onDraftChange} placeholder="20% atau 50000" required />
+        <FieldInput label="Nilai Diskon" value={state.draft.value} field="value" onChange={onDraftChange} placeholder="20 atau 50000" required />
         <FieldInput label="Tanggal Mulai" value={state.draft.startDate} field="startDate" type="date" onChange={onDraftChange} required />
         <FieldInput label="Tanggal Berakhir" value={state.draft.endDate} field="endDate" type="date" onChange={onDraftChange} required />
         <FieldInput label="Batas Penggunaan" value={state.draft.usageLimit} field="usageLimit" type="number" onChange={onDraftChange} required />
@@ -242,7 +251,7 @@ function TicketFields({
   const isReservedSeating = venueHasReservedSeating(venueData)
   
   const availableSeats = isReservedSeating
-    ? data.seats.filter(s => s.venue === venueForEvent && s.status === 'Tersedia').map(s => `${s.section}-${s.row}${s.number}`)
+    ? data.seats.filter(s => s.venue === venueForEvent && s.status === 'Tersedia').map(getSeatCode)
     : []
 
   const isUpdate = state.mode === 'update'
@@ -255,7 +264,7 @@ function TicketFields({
     const isCurrentReserved = venueHasReservedSeating(currentVenueData)
     
     const currentSeatOptions = isCurrentReserved
-      ? data.seats.filter(s => s.venue === currentVenue && s.status === 'Tersedia').map(s => `${s.section}-${s.row}${s.number}`)
+      ? data.seats.filter(s => s.venue === currentVenue && s.status === 'Tersedia').map(getSeatCode)
       : []
 
     return (
@@ -361,33 +370,6 @@ function FieldInput({
   )
 }
 
-function FieldCheckbox({
-  label,
-  checked,
-  field,
-  onChange,
-}: {
-  label: string
-  checked: boolean
-  field: string
-  onChange: (draft: ResourceDraft) => void
-}) {
-  return (
-    <label htmlFor={field} className="flex w-fit items-center gap-2 text-sm font-medium text-[var(--foreground)]">
-      <input
-        id={field}
-        type="checkbox"
-        checked={checked}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          onChange({ [field]: String(e.target.checked) } as ResourceDraft)
-        }
-        className="h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
-      />
-      {label}
-    </label>
-  )
-}
-
 function FieldTextarea({
   label,
   value,
@@ -412,11 +394,39 @@ function FieldTextarea({
   )
 }
 
+function FieldCheckbox({
+  label,
+  checked,
+  field,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  field: string
+  onChange: (draft: ResourceDraft) => void
+}) {
+  return (
+    <label className="flex items-center gap-2 text-sm font-medium text-[var(--foreground)]">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange({ [field]: String(event.target.checked) } as ResourceDraft)}
+        className="h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
+      />
+      {label}
+    </label>
+  )
+}
+
 function venueHasReservedSeating(venue: AppData['venues'][number] | undefined) {
   if (!venue) return false
   if ('hasReservedSeating' in venue) return venue.hasReservedSeating
   const legacyVenue = venue as AppData['venues'][number] & { seatingType?: string }
   return legacyVenue.seatingType !== 'Festival'
+}
+
+function getSeatCode(seat: { section: string; row: string; number: string }) {
+  return `${seat.section}-${seat.row}-${seat.number}`
 }
 
 type TicketCategoryDraft = {

@@ -2,7 +2,7 @@ import type { AppData, Artist, EventItem, Order, Promotion, Seat, Ticket, Ticket
 
 export function createDefaultDraft(kind: ResourceKind, data: AppData): ResourceDraft {
   if (kind === 'venues') {
-    return { name: '', address: '', city: '', capacity: '100', hasReservedSeating: 'true' }
+    return { name: '', address: '', city: '', capacity: '100', hasReservedSeating: 'false' }
   }
   if (kind === 'events') {
     return {
@@ -49,8 +49,10 @@ export function createDefaultDraft(kind: ResourceKind, data: AppData): ResourceD
 export function createDraftFromData(kind: ResourceKind, data: AppData, id: number): ResourceDraft {
   if (kind === 'venues') {
     const venue = data.venues.find((item) => item.id === id)
-    const draft = toStringDraft(venue)
-    return { ...draft, hasReservedSeating: String(hasReservedSeating(venue)) }
+    return {
+      ...toStringDraft(venue),
+      hasReservedSeating: String(venueHasReservedSeating(venue)),
+    }
   }
   if (kind === 'events') {
     const event = data.events.find((item) => item.id === id)
@@ -129,9 +131,10 @@ export function validateResourceDraft(state: ResourceDialogState, data: AppData)
     if (mode === 'create' && (!draft.orderCode || !draft.category)) return 'Order dan kategori tiket wajib dipilih.'
   }
   if (kind === 'promotions') {
-    if (!draft.code.trim() || !draft.title.trim() || !draft.value.trim() || !draft.startDate || !draft.endDate) {
-      return 'Seluruh field promosi wajib diisi.'
+    if (!draft.code.trim() || !draft.value.trim() || !draft.startDate || !draft.endDate) {
+      return 'Seluruh field wajib diisi.'
     }
+    if (parseDiscountValue(draft.value) <= 0) return 'Nilai diskon harus berupa bilangan positif.'
     const duplicateCode = data.promotions.some(
       (promo) => promo.id !== id && promo.code.toLowerCase() === draft.code.trim().toLowerCase(),
     )
@@ -359,8 +362,12 @@ function parseTicketCategories(value: string | undefined) {
   }
 }
 
-function hasReservedSeating(venue: Venue | undefined) {
-  if (!venue) return true
+function parseDiscountValue(value: string) {
+  return Number(value.replace(/[^\d]/g, ''))
+}
+
+function venueHasReservedSeating(venue: Venue | undefined) {
+  if (!venue) return false
   if ('hasReservedSeating' in venue) return venue.hasReservedSeating
   const legacyVenue = venue as Venue & { seatingType?: string }
   return legacyVenue.seatingType !== 'Festival'

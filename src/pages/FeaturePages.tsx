@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Percent, Plus, Search, TicketCheck } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
@@ -159,7 +159,8 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
   return (
     <PromotionPage
       promotions={data.promotions}
-      canCreate={user.role === 'admin'}
+      isAdmin={user.role === 'admin'}
+      orders={data.orders}
       onAdd={() => onAdd('promotions')}
       onUpdate={(item) => onUpdate('promotions', item.id)}
       onDelete={(item) => onDelete('promotions', item.id)}
@@ -590,40 +591,46 @@ const orderColumns: Column<Order>[] = [
 ]
 
 const promotionColumns: Column<Promotion>[] = [
-  { key: 'code', label: 'Kode', render: (promotion) => promotion.code },
-  { key: 'title', label: 'Nama', render: (promotion) => promotion.title },
-  { key: 'discountType', label: 'Tipe', render: (promotion) => promotion.discountType },
-  { key: 'value', label: 'Nilai', render: (promotion) => promotion.value },
-  { key: 'startDate', label: 'Mulai', render: (promotion) => promotion.startDate },
-  { key: 'endDate', label: 'Berakhir', render: (promotion) => promotion.endDate },
-  { key: 'usageLimit', label: 'Batas', render: (promotion) => promotion.usageLimit },
+  { key: 'id', label: 'Promotion ID', render: (promotion) => `PROMO-${promotion.id}` },
+  { key: 'code', label: 'Promo Code', render: (promotion) => promotion.code },
+  { key: 'discountType', label: 'Discount Type', render: (promotion) => promotion.discountType },
+  { key: 'value', label: 'Discount Value', render: (promotion) => promotion.value },
+  { key: 'startDate', label: 'Start Date', render: (promotion) => promotion.startDate },
+  { key: 'endDate', label: 'End Date', render: (promotion) => promotion.endDate },
 ]
 
 function PromotionPage({
   promotions,
-  canCreate,
+  isAdmin,
+  orders,
   onAdd,
   onUpdate,
   onDelete,
 }: {
   promotions: Promotion[]
-  canCreate: boolean
+  isAdmin: boolean
+  orders: Order[]
   onAdd: () => void
   onUpdate: (item: Promotion) => void
   onDelete: (item: Promotion) => void
 }) {
   const [discountType, setDiscountType] = useState('all')
-  const data =
-    discountType === 'all'
-      ? promotions
-      : promotions.filter((promotion) => promotion.discountType === discountType)
+  const [query, setQuery] = useState('')
+  const getUsedCount = (code: string) => orders.filter((order) => order.promoCode === code).length
+  const totalUsage = promotions.reduce((total, promotion) => total + getUsedCount(promotion.code), 0)
+  const percentageCount = promotions.filter((promotion) => promotion.discountType === 'Persentase').length
+  const data = promotions.filter((promotion) => {
+    const matchesType = discountType === 'all' || promotion.discountType === discountType
+    const matchesQuery = promotion.code.toLowerCase().includes(query.trim().toLowerCase())
+    return matchesType && matchesQuery
+  })
 
   return (
     <div>
       <PageHeader
         title="Promosi"
         action={
-          canCreate && (
+          isAdmin && (
             <Button onClick={onAdd}>
               <Plus className="h-4 w-4 mr-1" />
               Buat Promo
@@ -631,16 +638,51 @@ function PromotionPage({
           )
         }
       />
-      <Select value={discountType} onValueChange={setDiscountType}>
-        <SelectTrigger className="w-[180px] mb-4">
-          <SelectValue placeholder="Semua tipe" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Semua tipe</SelectItem>
-          <SelectItem value="Persentase">Persentase</SelectItem>
-          <SelectItem value="Nominal">Nominal</SelectItem>
-        </SelectContent>
-      </Select>
+      <StatCards
+        stats={[
+          {
+            label: 'Total Promo',
+            value: String(promotions.length),
+            icon: <Percent className="h-5 w-5" />,
+            accentClassName: 'bg-[#2563eb]',
+          },
+          {
+            label: 'Total Penggunaan',
+            value: String(totalUsage),
+            description: 'Semua kode promo',
+            icon: <TicketCheck className="h-5 w-5" />,
+            accentClassName: 'bg-[#16a34a]',
+          },
+          {
+            label: 'Tipe Persentase',
+            value: String(percentageCount),
+            description: `${promotions.length - percentageCount} nominal`,
+            icon: <Percent className="h-5 w-5" />,
+            accentClassName: 'bg-[#7c3aed]',
+          },
+        ]}
+      />
+      <div className="my-4 flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Cari kode promo"
+            className="pl-9"
+          />
+        </div>
+        <Select value={discountType} onValueChange={setDiscountType}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="Semua tipe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua</SelectItem>
+            <SelectItem value="Persentase">Persentase</SelectItem>
+            <SelectItem value="Nominal">Nominal</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <Card>
         <Table>
           <TableHeader>
@@ -648,7 +690,8 @@ function PromotionPage({
               {promotionColumns.map((column) => (
                 <TableHead key={column.key}>{column.label}</TableHead>
               ))}
-              <TableHead className="w-[150px]">Aksi</TableHead>
+              <TableHead>Penggunaan</TableHead>
+              {isAdmin && <TableHead className="w-[150px]">Action</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -658,15 +701,20 @@ function PromotionPage({
                   <TableCell key={column.key}>{column.render(item)}</TableCell>
                 ))}
                 <TableCell>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => onUpdate(item)}>
-                      Update
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => onDelete(item)}>
-                      Delete
-                    </Button>
-                  </div>
+                  {getUsedCount(item.code)} / {item.usageLimit}
                 </TableCell>
+                {isAdmin && (
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => onUpdate(item)}>
+                        Update
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => onDelete(item)}>
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
