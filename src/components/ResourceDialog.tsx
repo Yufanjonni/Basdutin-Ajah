@@ -6,6 +6,7 @@ import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/Select'
 import type { AppData, ResourceDialogState, ResourceDraft, ResourceKind } from '../types'
+import { formatCurrency } from '../utils/format'
 
 type ResourceDialogProps = {
   state: ResourceDialogState
@@ -232,12 +233,15 @@ function TicketFields({
   const [selectedOrder, setSelectedOrder] = useState(state.draft.orderCode || '')
   const [selectedCategory, setSelectedCategory] = useState(state.draft.category || '')
 
-  const orderOptions = data.orders.map(o => o.code)
+  const orderOptions = data.orders.map(o => ({
+    value: o.code,
+    label: `${o.code} - ${o.customer} - ${o.event}`,
+  }))
   const selectedOrderData = data.orders.find(o => o.code === selectedOrder)
   const eventName = selectedOrderData?.event || ''
   
   const categoryOptions = eventName 
-    ? data.ticketCategories.filter(c => c.event === eventName).map(c => c.name)
+    ? data.ticketCategories.filter(c => c.event === eventName)
     : []
   
   const venueForEvent = data.events.find(e => e.title === eventName)?.venue || ''
@@ -245,7 +249,7 @@ function TicketFields({
   const isReservedSeating = venueHasReservedSeating(venueData)
   
   const availableSeats = isReservedSeating
-    ? data.seats.filter(s => s.venue === venueForEvent && s.status === 'Tersedia').map(getSeatCode)
+    ? data.seats.filter(s => s.venue === venueForEvent && s.status === 'Tersedia')
     : []
 
   const isUpdate = state.mode === 'update'
@@ -258,7 +262,7 @@ function TicketFields({
     const isCurrentReserved = venueHasReservedSeating(currentVenueData)
     
     const currentSeatOptions = isCurrentReserved
-      ? data.seats.filter(s => s.venue === currentVenue && s.status === 'Tersedia').map(getSeatCode)
+      ? data.seats.filter(s => s.venue === currentVenue && s.status === 'Tersedia')
       : []
 
     return (
@@ -272,13 +276,29 @@ function TicketFields({
           onChange={onDraftChange}
         />
         {isCurrentReserved && (
-          <FieldSelect
-            label="Kursi"
-            value={state.draft.seatCode}
-            field="seatCode"
-            options={[state.draft.seatCode, 'Tanpa Kursi', ...currentSeatOptions].filter((v, i, a) => a.indexOf(v) === i)}
-            onChange={onDraftChange}
-          />
+          <div className="grid gap-2">
+            <Label>Kursi</Label>
+            <Select value={state.draft.seatCode || '-'} onValueChange={(value) => onDraftChange({ seatCode: value } as ResourceDraft)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih kursi" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="-">Tanpa Kursi</SelectItem>
+                {state.draft.seatCode && state.draft.seatCode !== '-' && (
+                  <SelectItem value={state.draft.seatCode}>{formatSeatLabel(state.draft.seatCode)}</SelectItem>
+                )}
+                {currentSeatOptions.map((seat) => {
+                  const code = getSeatCode(seat)
+                  if (code === state.draft.seatCode) return null
+                  return (
+                    <SelectItem key={code} value={code}>
+                      {formatSeatLabel(code)}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
         )}
       </>
     )
@@ -286,44 +306,77 @@ function TicketFields({
 
   return (
     <>
-      <FieldSelect
-        label="Order"
-        value={selectedOrder}
-        field="orderCode"
-        options={orderOptions}
-        onChange={(draft) => {
-          const val = draft.orderCode
-          if (val) {
-            setSelectedOrder(val)
+      <div className="grid gap-2">
+        <Label>Order</Label>
+        <Select
+          value={selectedOrder}
+          onValueChange={(value) => {
+            setSelectedOrder(value)
             setSelectedCategory('')
-            onDraftChange({ ...state.draft, orderCode: val, category: '', seatCode: '' } as ResourceDraft)
-          }
-        }}
-      />
-      {selectedOrder && (
-        <FieldSelect
-          label="Kategori Tiket"
-          value={selectedCategory}
-          field="category"
-          options={categoryOptions}
-          onChange={(draft) => {
-            const val = draft.category
-            if (val) {
-              setSelectedCategory(val)
-              onDraftChange({ ...state.draft, category: val } as ResourceDraft)
-            }
+            onDraftChange({ orderCode: value, category: '', seatCode: '-' } as ResourceDraft)
           }}
-        />
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Pilih order" />
+          </SelectTrigger>
+          <SelectContent>
+            {orderOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {selectedOrder && (
+        <div className="grid gap-2">
+          <Label>Kategori Tiket</Label>
+          <Select
+            value={selectedCategory}
+            onValueChange={(value) => {
+              setSelectedCategory(value)
+              onDraftChange({ category: value, seatCode: '-' } as ResourceDraft)
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih kategori tiket" />
+            </SelectTrigger>
+            <SelectContent>
+              {categoryOptions.map((category) => {
+                const used = getUsedCategoryCount(data, eventName, category.name)
+                const full = used >= category.quota
+                return (
+                  <SelectItem key={category.id} value={category.name} disabled={full}>
+                    {category.name} - {formatCurrency(category.price)} ({used}/{category.quota})
+                  </SelectItem>
+                )
+              })}
+            </SelectContent>
+          </Select>
+        </div>
       )}
       {isReservedSeating && selectedOrder && selectedCategory && (
-        <FieldSelect
-          label="Kursi"
-          value={state.draft.seatCode}
-          field="seatCode"
-          options={['Tanpa Kursi', ...availableSeats]}
-          onChange={onDraftChange}
-        />
+        <div className="grid gap-2">
+          <Label>Kursi (Opsional)</Label>
+          <Select value={state.draft.seatCode || '-'} onValueChange={(value) => onDraftChange({ seatCode: value } as ResourceDraft)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih kursi" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="-">Tanpa Kursi</SelectItem>
+              {availableSeats.map((seat) => {
+                const code = getSeatCode(seat)
+                return (
+                  <SelectItem key={code} value={code}>
+                    {formatSeatLabel(code)}
+                  </SelectItem>
+                )
+              })}
+            </SelectContent>
+          </Select>
+        </div>
       )}
+      <FieldInput label="Kode Tiket" value="Auto-generate saat dibuat" field="generatedCode" onChange={onDraftChange} readOnly />
     </>
   )
 }
@@ -421,6 +474,16 @@ function venueHasReservedSeating(venue: AppData['venues'][number] | undefined) {
 
 function getSeatCode(seat: { section: string; row: string; number: string }) {
   return `${seat.section}-${seat.row}-${seat.number}`
+}
+
+function formatSeatLabel(code: string) {
+  if (code === '-') return 'Tanpa Kursi'
+  const [section, row, number] = code.split('-')
+  return `${section} - Baris ${row}, No. ${number}`
+}
+
+function getUsedCategoryCount(data: AppData, eventName: string, categoryName: string) {
+  return data.tickets.filter((ticket) => ticket.event === eventName && ticket.category === categoryName).length
 }
 
 type TicketCategoryDraft = {

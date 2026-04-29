@@ -129,6 +129,12 @@ export function validateResourceDraft(state: ResourceDialogState, data: AppData)
   }
   if (kind === 'tickets') {
     if (mode === 'create' && (!draft.orderCode || !draft.category)) return 'Order dan kategori tiket wajib dipilih.'
+    if (mode === 'create') {
+      const order = data.orders.find((item) => item.code === draft.orderCode)
+      const category = data.ticketCategories.find((item) => item.event === order?.event && item.name === draft.category)
+      const used = data.tickets.filter((ticket) => ticket.event === order?.event && ticket.category === draft.category).length
+      if (category && used >= category.quota) return 'Kuota kategori tiket sudah penuh.'
+    }
   }
   if (kind === 'promotions') {
     if (!draft.code.trim() || !draft.value.trim() || !draft.startDate || !draft.endDate) {
@@ -249,21 +255,28 @@ export function applyResourceDraft(state: ResourceDialogState, data: AppData, us
 
   if (kind === 'tickets') {
     if (mode === 'update') {
+      const oldTicket = data.tickets.find((item) => item.id === id)
+      const nextSeatCode = normalizeSeatCode(draft.seatCode)
+      const nextTickets = data.tickets.map((item) =>
+        item.id === id ? { ...item, status: draft.status as Ticket['status'], seatCode: nextSeatCode } : item,
+      )
+      const releasedSeats = oldTicket?.seatCode && oldTicket.seatCode !== nextSeatCode
+        ? updateSeatStatus(data.seats, oldTicket.seatCode, 'Tersedia')
+        : data.seats
       return {
         ...data,
-        tickets: data.tickets.map((item) =>
-          item.id === id ? { ...item, status: draft.status as Ticket['status'] } : item,
-        ),
+        tickets: nextTickets,
+        seats: updateSeatStatus(releasedSeats, nextSeatCode, 'Terisi'),
       }
     }
-    const orderCode = draft.orderCode.split(' - ')[0]
+    const orderCode = draft.orderCode
     const order = data.orders.find((item) => item.code === orderCode)
     const value: Ticket = {
       id: nextId,
       code: `TKT-${String(nextId).slice(-4)}`,
       orderCode,
       category: draft.category,
-      seatCode: draft.seatCode || '-',
+      seatCode: normalizeSeatCode(draft.seatCode),
       event: order?.event ?? '',
       customer: order?.customer ?? '',
       status: draft.status as Ticket['status'],
@@ -338,6 +351,10 @@ export function getSeatCode(seat: Pick<Seat, 'section' | 'row' | 'number'>) {
 function updateSeatStatus(seats: Seat[], code: string, status: Seat['status']) {
   if (!code || code === '-') return seats
   return seats.map((seat) => (getSeatCode(seat) === code ? { ...seat, status } : seat))
+}
+
+function normalizeSeatCode(code: string | undefined) {
+  return !code || code === 'Tanpa Kursi' ? '-' : code
 }
 
 function getOrderOption(order: Order) {
