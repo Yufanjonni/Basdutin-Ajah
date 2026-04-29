@@ -132,23 +132,26 @@ export function CheckoutPage({
               {isReservedSeating && category && availableSeats.length > 0 && (
                 <div className="grid gap-2">
                   <Label>Pilih Kursi ({selectedSeats.length}/{quantity})</Label>
-                  <div className="bg-white rounded-xl p-5 border border-[#e2e8f0] shadow-sm">
-                    <div className="text-center mb-4">
-                      <span className="text-xs font-bold text-[#64748b] bg-[#f8fafc] px-4 py-1.5 rounded-lg uppercase tracking-wider">Stage</span>
+                  <div className="rounded-xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-[#0f172a]">Seat Map</span>
+                      <span className="rounded-full bg-[#f8fafc] px-3 py-1 text-xs font-semibold text-[#64748b]">
+                        {selectedSeats.length} dipilih
+                      </span>
                     </div>
-                    <div className="flex flex-col gap-4">
+                    <div className="grid gap-4">
                       {sections.map(section => {
                         const sectionSeats = availableSeats.filter(s => s.section === section)
                         const rows = [...new Set(sectionSeats.map(s => s.row))].sort()
                         
                         return (
-                          <div key={section} className="text-center">
-                            <div className="text-xs text-[#64748b] mb-3 font-semibold uppercase">Section {section}</div>
-                            <div className="flex flex-col gap-2">
+                          <div key={section} className="grid gap-2">
+                            <div className="text-xs font-bold uppercase tracking-wide text-[#64748b]">Section {section}</div>
+                            <div className="grid gap-2">
                               {rows.map(row => {
                                 const rowSeats = sectionSeats.filter(s => s.row === row).sort((a, b) => a.number.localeCompare(b.number))
                                 return (
-                                  <div key={row} className="flex justify-center gap-1.5 flex-wrap">
+                                  <div key={row} className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                                     {rowSeats.map(seat => {
                                       const seatCode = `${seat.section}-${seat.row}-${seat.number}`
                                       const isSelected = selectedSeats.includes(seatCode)
@@ -158,13 +161,13 @@ export function CheckoutPage({
                                           type="button"
                                           onClick={() => toggleSeat(seatCode)}
                                           disabled={!isSelected && selectedSeats.length >= quantity}
-                                          className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all ${
+                                          className={`h-9 rounded-lg border text-xs font-bold transition-colors ${
                                             isSelected 
-                                              ? 'bg-[#0f172a] text-white shadow-md' 
-                                              : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#e2e8f0] hover:text-[#0f172a]'
+                                              ? 'border-[#2563eb] bg-[#2563eb] text-white' 
+                                              : 'border-[#e2e8f0] bg-white text-[#334155] hover:border-[#93c5fd] hover:bg-[#eff6ff]'
                                           } disabled:opacity-40 disabled:cursor-not-allowed`}
                                         >
-                                          {getSeatDisplay(seat)}
+                                          {seat.section}{getSeatDisplay(seat)}
                                         </button>
                                       )
                                     })}
@@ -176,12 +179,12 @@ export function CheckoutPage({
                         )
                       })}
                     </div>
-                    <div className="mt-5 pt-4 border-t border-[#e2e8f0] flex gap-8 text-xs justify-center">
+                    <div className="mt-4 flex gap-6 border-t border-[#e2e8f0] pt-4 text-xs">
                       <span className="flex items-center gap-2 text-[#64748b]">
-                        <span className="w-5 h-5 rounded-lg bg-[#f8fafc]"></span> Tersedia
+                        <span className="h-4 w-4 rounded border border-[#e2e8f0] bg-white"></span> Tersedia
                       </span>
                       <span className="flex items-center gap-2 text-[#64748b]">
-                        <span className="w-5 h-5 rounded-lg bg-[#0f172a]"></span> Dipilih
+                        <span className="h-4 w-4 rounded bg-[#2563eb]"></span> Dipilih
                       </span>
                     </div>
                   </div>
