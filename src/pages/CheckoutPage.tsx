@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Label } from '../components/ui/Label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select'
-import type { EventItem, Promotion, TicketCategory, Venue, Seat } from '../types'
+import type { EventItem, Promotion, Seat, TicketCategory, Venue } from '../types'
 import { formatCurrency } from '../utils/format'
 
 type CheckoutPageProps = {
@@ -29,8 +29,6 @@ type CheckoutPageProps = {
 
 export function CheckoutPage({
   event,
-  venues,
-  seats,
   categories,
   promotions,
   quantity,
@@ -45,13 +43,7 @@ export function CheckoutPage({
   onSubmit,
   onBack,
 }: CheckoutPageProps) {
-  const venueData = venues.find(v => v.name === event.venue)
-  const isReservedSeating = venueHasReservedSeating(venueData)
-  const availableSeats = isReservedSeating 
-    ? seats.filter(s => s.venue === event.venue && s.status === 'Tersedia')
-    : []
-  
-  const sections = [...new Set(availableSeats.map(s => s.section))].sort()
+  const availableSeats = createVisualSeats()
   
   const selectedCategory = categories.find((c) => c.name === category)
   const basePrice = selectedCategory?.price ?? event.price
@@ -71,10 +63,6 @@ export function CheckoutPage({
     } else if (selectedSeats.length < quantity) {
       onSelectedSeatsChange([...selectedSeats, seatCode])
     }
-  }
-
-  const getSeatDisplay = (seat: { section: string; row: string; number: string }) => {
-    return `${seat.row}${seat.number}`
   }
 
   return (
@@ -129,7 +117,7 @@ export function CheckoutPage({
                 </Select>
               </div>
 
-              {isReservedSeating && category && availableSeats.length > 0 && (
+              {category && (
                 <div className="grid gap-2">
                   <Label>Pilih Kursi ({selectedSeats.length}/{quantity})</Label>
                   <div className="rounded-xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
@@ -139,43 +127,24 @@ export function CheckoutPage({
                         {selectedSeats.length} dipilih
                       </span>
                     </div>
-                    <div className="grid gap-4">
-                      {sections.map(section => {
-                        const sectionSeats = availableSeats.filter(s => s.section === section)
-                        const rows = [...new Set(sectionSeats.map(s => s.row))].sort()
-                        
+                    <div className="grid grid-cols-4 gap-2">
+                      {availableSeats.map(seat => {
+                        const seatCode = `${seat.section}-${seat.row}-${seat.number}`
+                        const isSelected = selectedSeats.includes(seatCode)
                         return (
-                          <div key={section} className="grid gap-2">
-                            <div className="text-xs font-bold uppercase tracking-wide text-[#64748b]">Section {section}</div>
-                            <div className="grid gap-2">
-                              {rows.map(row => {
-                                const rowSeats = sectionSeats.filter(s => s.row === row).sort((a, b) => a.number.localeCompare(b.number))
-                                return (
-                                  <div key={row} className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                                    {rowSeats.map(seat => {
-                                      const seatCode = `${seat.section}-${seat.row}-${seat.number}`
-                                      const isSelected = selectedSeats.includes(seatCode)
-                                      return (
-                                        <button
-                                          key={seatCode}
-                                          type="button"
-                                          onClick={() => toggleSeat(seatCode)}
-                                          disabled={!isSelected && selectedSeats.length >= quantity}
-                                          className={`h-9 rounded-lg border text-xs font-bold transition-colors ${
-                                            isSelected 
-                                              ? 'border-[#2563eb] bg-[#2563eb] text-white' 
-                                              : 'border-[#e2e8f0] bg-white text-[#334155] hover:border-[#93c5fd] hover:bg-[#eff6ff]'
-                                          } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                        >
-                                          {seat.section}{getSeatDisplay(seat)}
-                                        </button>
-                                      )
-                                    })}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
+                          <button
+                            key={seatCode}
+                            type="button"
+                            onClick={() => toggleSeat(seatCode)}
+                            disabled={!isSelected && selectedSeats.length >= quantity}
+                            className={`h-12 rounded-xl border text-sm font-bold transition-colors ${
+                              isSelected 
+                                ? 'border-[#2563eb] bg-[#2563eb] text-white' 
+                                : 'border-[#e2e8f0] bg-white text-[#334155] hover:border-[#93c5fd] hover:bg-[#eff6ff]'
+                            } disabled:opacity-40 disabled:cursor-not-allowed`}
+                          >
+                            {seat.section}{seat.number}
+                          </button>
                         )
                       })}
                     </div>
@@ -188,12 +157,6 @@ export function CheckoutPage({
                       </span>
                     </div>
                   </div>
-                </div>
-              )}
-              
-              {isReservedSeating && category && availableSeats.length === 0 && (
-                <div className="bg-[#fef3c7] border border-[#f59e0b] rounded-lg p-3 text-sm text-[#92400e]">
-                  Tidak ada kursi tersedia untuk venue ini.
                 </div>
               )}
 
@@ -251,9 +214,15 @@ export function CheckoutPage({
   )
 }
 
-function venueHasReservedSeating(venue: Venue | undefined) {
-  if (!venue) return false
-  if ('hasReservedSeating' in venue) return venue.hasReservedSeating
-  const legacyVenue = venue as Venue & { seatingType?: string }
-  return legacyVenue.seatingType !== 'Festival'
+function createVisualSeats(): Seat[] {
+  return ['A', 'B', 'C', 'D'].flatMap((section, sectionIndex) =>
+    Array.from({ length: 4 }, (_, index) => ({
+      id: sectionIndex * 4 + index + 1,
+      venue: 'Visual',
+      section,
+      row: '',
+      number: String(index + 1),
+      status: 'Tersedia' as const,
+    })),
+  )
 }
