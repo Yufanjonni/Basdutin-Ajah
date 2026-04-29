@@ -1,7 +1,9 @@
 import type { FormEvent } from 'react'
-import { Field } from '../components/Field'
-import { Modal } from '../components/Modal'
-import { PageHeader } from '../components/PageHeader'
+import { Button } from '../components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/Dialog'
+import { Input } from '../components/ui/Input'
+import { Label } from '../components/ui/Label'
 import { roleLabels } from '../data/mockData'
 import type { AppData, Role, User } from '../types'
 import { formatCurrency } from '../utils/format'
@@ -29,26 +31,30 @@ export function DashboardPage({ user, data, userCount, onProfile }: DashboardPag
   const stats = getDashboardStats(user, data, userCount)
 
   return (
-    <section className="content-page">
-      <PageHeader
-        eyebrow={`Dashboard ${roleLabels[user.role]}`}
-        title={user.name}
-        action={
-          <button className="secondary-button" type="button" onClick={onProfile}>
-            Profil Saya
-          </button>
-        }
-      />
-      <div className="stats-row wide">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-[var(--primary)] uppercase tracking-wide">
+            Dashboard {roleLabels[user.role]}
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight mt-1">{user.name}</h1>
+        </div>
+        <Button variant="outline" onClick={onProfile}>
+          Profil Saya
+        </Button>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <div className="stat-card" key={stat.label}>
-            <span>{stat.label}</span>
-            <strong>{stat.value}</strong>
-          </div>
+          <Card key={stat.label}>
+            <CardContent className="pt-6">
+              <div className="text-sm text-[var(--muted-foreground)]">{stat.label}</div>
+              <div className="text-2xl font-bold mt-1">{stat.value}</div>
+            </CardContent>
+          </Card>
         ))}
       </div>
       <ProfileInfo user={user} />
-    </section>
+    </div>
   )
 }
 
@@ -80,73 +86,114 @@ export function ProfilePage({
   onClosePassword,
 }: ProfilePageProps) {
   return (
-    <section className="content-page">
-      <PageHeader
-        eyebrow="Profile"
-        title={user.name}
-        action={
-          <button className="secondary-button" type="button" onClick={onBack}>
-            Dashboard
-          </button>
-        }
-      />
-      <div className="profile-layout">
-        <ProfileInfo user={user} />
-        <section className="panel-card">
-          <h2>Edit Profil</h2>
-          <form className="form-stack" onSubmit={onSubmit}>
-            <ProfileFields role={user.role} form={form} onChange={onFormChange} />
-            <Field label="Username">
-              <input disabled value={user.username} />
-            </Field>
-            <div className="action-row">
-              <button className="primary-button" type="submit">
-                Simpan
-              </button>
-              <button className="secondary-button" type="button" onClick={onOpenPassword}>
-                Update Password
-              </button>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          ← Kembali
+        </Button>
+      </div>
+      <h1 className="text-2xl font-bold">Edit Profil</h1>
+      
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Informasi Akun</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <div className="grid gap-1.5">
+              <Label>Nama</Label>
+              <div className="font-medium">{user.name}</div>
             </div>
-          </form>
-        </section>
+            <div className="grid gap-1.5">
+              <Label>Role</Label>
+              <div className="font-medium">{roleLabels[user.role]}</div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Email</Label>
+              <div className="font-medium">{user.email}</div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Nomor Telepon</Label>
+              <div className="font-medium">{user.phone}</div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Username</Label>
+              <div className="font-medium">{user.username}</div>
+            </div>
+            {user.contactEmail && (
+              <div className="grid gap-1.5">
+                <Label>Email Kontak</Label>
+                <div className="font-medium">{user.contactEmail}</div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Perbarui Profil</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={onSubmit} className="grid gap-4">
+              <ProfileFields role={user.role} form={form} onChange={onFormChange} />
+              <div className="grid gap-2">
+                <Label>Username</Label>
+                <Input disabled value={user.username} />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit">Simpan</Button>
+                <Button type="button" variant="outline" onClick={onOpenPassword}>
+                  Ubah Password
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
 
-      {passwordOpen && (
-        <Modal title="Update Password" onClose={onClosePassword}>
-          <form className="form-stack" onSubmit={onPasswordSubmit}>
-            <Field label="Password Saat Ini">
-              <input
+      <Dialog open={passwordOpen} onOpenChange={onClosePassword}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Ubah Password</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={onPasswordSubmit} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="current-password">Password Saat Ini</Label>
+              <Input
+                id="current-password"
                 required
                 type="password"
                 value={passwordForm.currentPassword}
-                onChange={(event) => onPasswordChange({ ...passwordForm, currentPassword: event.target.value })}
+                onChange={(e) => onPasswordChange({ ...passwordForm, currentPassword: e.target.value })}
               />
-            </Field>
-            <Field label="Password Baru">
-              <input
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-password">Password Baru</Label>
+              <Input
+                id="new-password"
                 required
                 minLength={6}
                 type="password"
                 value={passwordForm.nextPassword}
-                onChange={(event) => onPasswordChange({ ...passwordForm, nextPassword: event.target.value })}
+                onChange={(e) => onPasswordChange({ ...passwordForm, nextPassword: e.target.value })}
               />
-            </Field>
-            <Field label="Konfirmasi Password">
-              <input
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirm-password">Konfirmasi Password</Label>
+              <Input
+                id="confirm-password"
                 required
                 minLength={6}
                 type="password"
                 value={passwordForm.confirmPassword}
-                onChange={(event) => onPasswordChange({ ...passwordForm, confirmPassword: event.target.value })}
+                onChange={(e) => onPasswordChange({ ...passwordForm, confirmPassword: e.target.value })}
               />
-            </Field>
-            <button className="primary-button" type="submit">
-              Simpan Password
-            </button>
+            </div>
+            <Button type="submit">Simpan Password</Button>
           </form>
-        </Modal>
-      )}
-    </section>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
 
@@ -162,67 +209,74 @@ function ProfileFields({
   if (role === 'organizer') {
     return (
       <>
-        <Field label="Nama Penyelenggara">
-          <input required value={form.name} onChange={(event) => onChange({ ...form, name: event.target.value })} />
-        </Field>
-        <Field label="Email Kontak">
-          <input
+        <div className="grid gap-2">
+          <Label>Nama Penyelenggara</Label>
+          <Input 
+            required 
+            value={form.name} 
+            onChange={(e) => onChange({ ...form, name: e.target.value })} 
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label>Email Kontak</Label>
+          <Input
             required
             type="email"
             value={form.contactEmail}
-            onChange={(event) => onChange({ ...form, contactEmail: event.target.value })}
+            onChange={(e) => onChange({ ...form, contactEmail: e.target.value })}
           />
-        </Field>
-      </>
-    )
-  }
-
-  if (role === 'customer') {
-    return (
-      <>
-        <Field label="Nama Lengkap">
-          <input required value={form.name} onChange={(event) => onChange({ ...form, name: event.target.value })} />
-        </Field>
-        <Field label="Nomor Telepon">
-          <input required value={form.phone} onChange={(event) => onChange({ ...form, phone: event.target.value })} />
-        </Field>
+        </div>
       </>
     )
   }
 
   return (
     <>
-      <Field label="Nama Admin">
-        <input required value={form.name} onChange={(event) => onChange({ ...form, name: event.target.value })} />
-      </Field>
-      <Field label="Nomor Telepon">
-        <input required value={form.phone} onChange={(event) => onChange({ ...form, phone: event.target.value })} />
-      </Field>
+      <div className="grid gap-2">
+        <Label>Nama Lengkap</Label>
+        <Input 
+          required 
+          value={form.name} 
+          onChange={(e) => onChange({ ...form, name: e.target.value })} 
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label>Nomor Telepon</Label>
+        <Input 
+          required 
+          value={form.phone} 
+          onChange={(e) => onChange({ ...form, phone: e.target.value })} 
+        />
+      </div>
     </>
   )
 }
 
 function ProfileInfo({ user }: { user: User }) {
   return (
-    <article className="profile-card">
-      <dl>
-        <Info label="Nama" value={user.name} />
-        <Info label="Role" value={roleLabels[user.role]} />
-        <Info label="Email" value={user.email} />
-        <Info label="Nomor Telepon" value={user.phone} />
-        <Info label="Username" value={user.username} />
-        {user.contactEmail && <Info label="Email Kontak" value={user.contactEmail} />}
-      </dl>
-    </article>
-  )
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>informasi Profil</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-1">
+          <span className="text-sm text-[var(--muted-foreground)]">Nama</span>
+          <span className="font-medium">{user.name}</span>
+        </div>
+        <div className="grid gap-1">
+          <span className="text-sm text-[var(--muted-foreground)]">Role</span>
+          <span className="font-medium">{roleLabels[user.role]}</span>
+        </div>
+        <div className="grid gap-1">
+          <span className="text-sm text-[var(--muted-foreground)]">Email</span>
+          <span className="font-medium">{user.email}</span>
+        </div>
+        <div className="grid gap-1">
+          <span className="text-sm text-[var(--muted-foreground)]">Nomor Telepon</span>
+          <span className="font-medium">{user.phone}</span>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

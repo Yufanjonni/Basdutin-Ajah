@@ -1,6 +1,10 @@
 import type { FormEvent } from 'react'
-import { Field } from '../components/Field'
-import { PageHeader } from '../components/PageHeader'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '../components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
+import { Input } from '../components/ui/Input'
+import { Label } from '../components/ui/Label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select'
 import type { EventItem, Promotion, TicketCategory } from '../types'
 import { formatCurrency } from '../utils/format'
 
@@ -31,92 +35,117 @@ export function CheckoutPage({
   onSubmit,
   onBack,
 }: CheckoutPageProps) {
-  const safeQuantity = Math.max(1, quantity || 1)
-  const selectedCategory = categories.find((item) => item.name === category) ?? categories[0]
-  const price = selectedCategory?.price ?? event.price
-  const subtotal = price * safeQuantity
-  const selectedPromotion = promotions.find((item) => item.code.toLowerCase() === promoCode.trim().toLowerCase())
-  const discount =
-    selectedPromotion?.discountType === 'Persentase'
-      ? Math.round((subtotal * Number.parseInt(selectedPromotion.value, 10)) / 100)
-      : selectedPromotion
-        ? Number.parseInt(selectedPromotion.value.replace(/\D/g, ''), 10)
-        : 0
+  const selectedCategory = categories.find((c) => c.name === category)
+  const basePrice = selectedCategory?.price ?? event.price
+  const subtotal = basePrice * quantity
+  
+  const promo = promotions.find((p) => p.code.toLowerCase() === promoCode.trim().toLowerCase())
+  const discount = promo
+    ? promo.discountType === 'Persentase'
+      ? Math.round((subtotal * parseInt(promo.value)) / 100)
+      : parseInt(promo.value.replace(/\D/g, ''))
+    : 0
   const total = Math.max(0, subtotal - discount)
 
   return (
-    <section className="content-page">
-      <PageHeader
-        eyebrow="Pesanan"
-        title={event.title}
-        action={
-          <button className="secondary-button" type="button" onClick={onBack}>
-            Kembali
-          </button>
-        }
-      />
-      <div className="checkout-layout">
-        <article className="panel-card">
-          <h2>Detail Event</h2>
-          <dl className="detail-list">
-            <Info label="Artis" value={event.artist} />
-            <Info label="Venue" value={event.venue} />
-            <Info label="Tanggal" value={event.date} />
-            <Info label="Waktu" value={event.time} />
-            <Info label="Harga Mulai" value={formatCurrency(event.price)} />
-          </dl>
-        </article>
-        <section className="panel-card">
-          <h2>Beli Tiket</h2>
-          <form className="form-stack" onSubmit={onSubmit}>
-            <Field label="Kategori Tiket">
-              <select required value={category} onChange={(eventInput) => onCategoryChange(eventInput.target.value)}>
-                {categories.map((item) => (
-                  <option key={item.id} value={item.name}>
-                    {item.name} - {formatCurrency(item.price)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Jumlah Tiket">
-              <input
-                min={1}
-                max={10}
-                type="number"
-                value={safeQuantity}
-                onChange={(inputEvent) => onQuantityChange(Number(inputEvent.target.value))}
-              />
-            </Field>
-            <Field label="Kode Promo">
-              <input value={promoCode} onChange={(inputEvent) => onPromoChange(inputEvent.target.value)} />
-            </Field>
-            <div className="total-row">
-              <span>Subtotal</span>
-              <strong>{formatCurrency(subtotal)}</strong>
-            </div>
-            <div className="total-row compact">
-              <span>Diskon</span>
-              <strong>{formatCurrency(discount)}</strong>
-            </div>
-            <div className="total-row">
-              <span>Total</span>
-              <strong>{formatCurrency(total)}</strong>
-            </div>
-            <button className="primary-button" type="submit">
-              Buat Pesanan
-            </button>
-          </form>
-        </section>
-      </div>
-    </section>
-  )
-}
+    <div className="max-w-2xl mx-auto">
+      <Button variant="ghost" onClick={onBack} className="mb-4 gap-1">
+        <ArrowLeft className="h-4 w-4" />
+        Kembali
+      </Button>
+      
+      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
 
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{event.title}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-[var(--muted-foreground)]">Artis</span>
+              <span className="font-medium">{event.artist}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[var(--muted-foreground)]">Venue</span>
+              <span className="font-medium">{event.venue}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[var(--muted-foreground)]">Tanggal & Waktu</span>
+              <span className="font-medium">{event.date}, {event.time}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Pemesanan Tiket</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={onSubmit} className="grid gap-4">
+              <div className="grid gap-2">
+                <Label>Kategori Tiket</Label>
+                <Select value={category} onValueChange={onCategoryChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        {cat.name} - {formatCurrency(cat.price)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Jumlah Tiket</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={quantity}
+                  onChange={(e) => onQuantityChange(parseInt(e.target.value) || 1)}
+                />
+                <p className="text-xs text-[var(--muted-foreground)]">Maximum 10 tiket per transaksi</p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Kode Promo (Opsional)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={promoCode}
+                    onChange={(e) => onPromoChange(e.target.value)}
+                    placeholder="Masukkan kode promo"
+                  />
+                </div>
+              </div>
+
+              <div className="border-t pt-4 mt-2">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-[var(--muted-foreground)]">Subtotal</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                {promo && (
+                  <div className="flex justify-between text-sm text-[var(--success)] mb-2">
+                    <span>Diskon ({promo.code})</span>
+                    <span>-{formatCurrency(discount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-lg mt-4 pt-2 border-t">
+                  <span>Total</span>
+                  <span>{formatCurrency(total)}</span>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full mt-4">
+                Buat Pesanan
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

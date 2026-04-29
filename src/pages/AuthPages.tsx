@@ -1,6 +1,8 @@
-import type { FormEvent, ReactNode } from 'react'
-import { BrandPanel } from '../components/BrandPanel'
-import { Field } from '../components/Field'
+import { ArrowLeft, Ticket } from 'lucide-react'
+import { Button } from '../components/ui/Button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card'
+import { Input } from '../components/ui/Input'
+import { Label } from '../components/ui/Label'
 import { roleLabels } from '../data/mockData'
 import type { RegisterForm, Role } from '../types'
 
@@ -9,11 +11,28 @@ type LoginForm = {
   password: string
 }
 
-export function AuthLayout({ children }: { children: ReactNode }) {
+export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="auth-layout">
-      <BrandPanel />
-      {children}
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4">
+      <div className="w-full max-w-[1100px] grid md:grid-cols-2 gap-12 items-center">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+export function BrandSide() {
+  return (
+    <div className="hidden md:flex flex-col gap-6 py-8">
+      <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg">
+        <Ticket className="h-8 w-8" />
+      </div>
+      <div className="space-y-3">
+        <h1 className="text-4xl font-bold tracking-tight">TikTakTuk</h1>
+        <p className="text-lg text-[var(--muted-foreground)] leading-relaxed max-w-md">
+          Platform pemesanan tiket event terpercaya. Temukan dan pesan tiket acara favorit Anda dengan mudah.
+        </p>
+      </div>
     </div>
   )
 }
@@ -21,43 +40,50 @@ export function AuthLayout({ children }: { children: ReactNode }) {
 type LoginPanelProps = {
   form: LoginForm
   onChange: (value: LoginForm) => void
-  onSubmit: (event: FormEvent) => void
+  onSubmit: (event: React.FormEvent) => void
   onRegister: () => void
 }
 
 export function LoginPanel({ form, onChange, onSubmit, onRegister }: LoginPanelProps) {
   return (
-    <section className="auth-card">
-      <h2>Masuk ke Akun Anda</h2>
-      <form className="form-stack" onSubmit={onSubmit}>
-        <Field label="Username atau Email">
-          <input
-            required
-            value={form.username}
-            onChange={(event) => onChange({ ...form, username: event.target.value })}
-            placeholder="Masukkan username atau email"
-          />
-        </Field>
-        <Field label="Password">
-          <input
-            required
-            type="password"
-            value={form.password}
-            onChange={(event) => onChange({ ...form, password: event.target.value })}
-            placeholder="Masukkan password"
-          />
-        </Field>
-        <button className="primary-button" type="submit">
-          Masuk
-        </button>
-      </form>
-      <p className="switch-text">
-        Belum punya akun?{' '}
-        <button type="button" onClick={onRegister}>
-          Daftar sekarang
-        </button>
-      </p>
-    </section>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl">Masuk ke Akun</CardTitle>
+        <CardDescription>Masukkan username dan password untuk login</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username">Username atau Email</Label>
+            <Input
+              id="username"
+              required
+              value={form.username}
+              onChange={(e) => onChange({ ...form, username: e.target.value })}
+              placeholder="Masukkan username atau email"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              required
+              type="password"
+              value={form.password}
+              onChange={(e) => onChange({ ...form, password: e.target.value })}
+              placeholder="Masukkan password"
+            />
+          </div>
+          <Button type="submit" className="w-full">Masuk</Button>
+        </form>
+        <div className="mt-4 text-center text-sm text-[var(--muted-foreground)]">
+          Belum punya akun?{' '}
+          <button type="button" onClick={onRegister} className="text-[var(--primary)] hover:underline font-medium">
+            Daftar sekarang
+          </button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -67,30 +93,40 @@ type RolePanelProps = {
 }
 
 export function RolePanel({ onChoose, onLogin }: RolePanelProps) {
+  const roles = [
+    { role: 'customer', title: 'Pelanggan', desc: 'Beli dan kelola tiket acara' },
+    { role: 'organizer', title: 'Penyelenggara', desc: 'Buat dan kelola acara serta venue' },
+    { role: 'admin', title: 'Admin', desc: 'Kelola data aplikasi' },
+  ] as const
+
   return (
-    <section className="auth-card">
-      <h2>Jenis Pengguna</h2>
-      <div className="role-list">
-        <button type="button" onClick={() => onChoose('customer')}>
-          <strong>Pelanggan</strong>
-          <span>Beli dan kelola tiket acara</span>
-        </button>
-        <button type="button" onClick={() => onChoose('organizer')}>
-          <strong>Penyelenggara</strong>
-          <span>Buat dan kelola acara serta venue</span>
-        </button>
-        <button type="button" onClick={() => onChoose('admin')}>
-          <strong>Admin</strong>
-          <span>Kelola data aplikasi</span>
-        </button>
-      </div>
-      <p className="switch-text">
-        Sudah punya akun?{' '}
-        <button type="button" onClick={onLogin}>
-          Login di sini
-        </button>
-      </p>
-    </section>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl">Jenis Pengguna</CardTitle>
+        <CardDescription>Pilih jenis akun yang Anda inginkan</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {roles.map((r) => (
+          <Button
+            key={r.role}
+            variant="outline"
+            className="h-auto py-4 justify-start text-left gap-2"
+            onClick={() => onChoose(r.role)}
+          >
+            <div className="flex flex-col items-start">
+              <span className="font-semibold">{r.title}</span>
+              <span className="text-sm text-[var(--muted-foreground)]">{r.desc}</span>
+            </div>
+          </Button>
+        ))}
+        <div className="mt-4 text-center text-sm text-[var(--muted-foreground)]">
+          Sudah punya akun?{' '}
+          <button type="button" onClick={onLogin} className="text-[var(--primary)] hover:underline font-medium">
+            Login di sini
+          </button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -100,88 +136,108 @@ type RegisterPanelProps = {
   onBack: () => void
   onChange: (value: RegisterForm) => void
   onLogin: () => void
-  onSubmit: (event: FormEvent) => void
+  onSubmit: (event: React.FormEvent) => void
 }
 
 export function RegisterPanel({ form, role, onBack, onChange, onLogin, onSubmit }: RegisterPanelProps) {
   return (
-    <section className="auth-card register-card">
-      <button className="back-button" type="button" onClick={onBack}>
-        Kembali
-      </button>
-      <h2>Daftar sebagai {roleLabels[role]}</h2>
-      <form className="form-stack" onSubmit={onSubmit}>
-        <Field label={role === 'organizer' ? 'Nama Penyelenggara' : 'Nama Lengkap'}>
-          <input
-            required
-            value={form.name}
-            onChange={(event) => onChange({ ...form, name: event.target.value })}
-            placeholder={role === 'organizer' ? 'Masukkan nama penyelenggara' : 'Masukkan nama lengkap'}
-          />
-        </Field>
-        <Field label="Email">
-          <input
-            required
-            type="email"
-            value={form.email}
-            onChange={(event) => onChange({ ...form, email: event.target.value })}
-            placeholder="Masukkan email"
-          />
-        </Field>
-        <Field label="Nomor Telepon">
-          <input
-            required
-            value={form.phone}
-            onChange={(event) => onChange({ ...form, phone: event.target.value })}
-            placeholder="Masukkan nomor telepon"
-          />
-        </Field>
-        <Field label="Username">
-          <input
-            required
-            value={form.username}
-            onChange={(event) => onChange({ ...form, username: event.target.value })}
-            placeholder="Pilih username"
-          />
-        </Field>
-        <Field label="Password">
-          <input
-            required
-            minLength={6}
-            type="password"
-            value={form.password}
-            onChange={(event) => onChange({ ...form, password: event.target.value })}
-            placeholder="Minimal 6 karakter"
-          />
-        </Field>
-        <Field label="Konfirmasi Password">
-          <input
-            required
-            minLength={6}
-            type="password"
-            value={form.confirmPassword}
-            onChange={(event) => onChange({ ...form, confirmPassword: event.target.value })}
-            placeholder="Konfirmasi password"
-          />
-        </Field>
-        <label className="checkbox-row">
-          <input
-            checked={form.agree}
-            type="checkbox"
-            onChange={(event) => onChange({ ...form, agree: event.target.checked })}
-          />
-          <span>Saya setuju dengan Syarat & Ketentuan</span>
-        </label>
-        <button className="primary-button" type="submit">
-          Daftar
-        </button>
-      </form>
-      <p className="switch-text">
-        Sudah punya akun?{' '}
-        <button type="button" onClick={onLogin}>
-          Login di sini
-        </button>
-      </p>
-    </section>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader className="space-y-1">
+        <Button variant="ghost" size="sm" onClick={onBack} className="w-fit -ml-2 gap-1">
+          <ArrowLeft className="h-4 w-4" />
+          Kembali
+        </Button>
+        <CardTitle className="text-2xl">Daftar sebagai {roleLabels[role]}</CardTitle>
+        <CardDescription>Isi data di bawah untuk membuat akun</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">{role === 'organizer' ? 'Nama Penyelenggara' : 'Nama Lengkap'}</Label>
+            <Input
+              id="name"
+              required
+              value={form.name}
+              onChange={(e) => onChange({ ...form, name: e.target.value })}
+              placeholder={role === 'organizer' ? 'Masukkan nama penyelenggara' : 'Masukkan nama lengkap'}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              required
+              type="email"
+              value={form.email}
+              onChange={(e) => onChange({ ...form, email: e.target.value })}
+              placeholder="Masukkan email"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Nomor Telepon</Label>
+            <Input
+              id="phone"
+              required
+              value={form.phone}
+              onChange={(e) => onChange({ ...form, phone: e.target.value })}
+              placeholder="Masukkan nomor telepon"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              required
+              value={form.username}
+              onChange={(e) => onChange({ ...form, username: e.target.value })}
+              placeholder="Pilih username"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              required
+              minLength={6}
+              type="password"
+              value={form.password}
+              onChange={(e) => onChange({ ...form, password: e.target.value })}
+              placeholder="Minimal 6 karakter"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+            <Input
+              id="confirmPassword"
+              required
+              minLength={6}
+              type="password"
+              value={form.confirmPassword}
+              onChange={(e) => onChange({ ...form, confirmPassword: e.target.value })}
+              placeholder="Konfirmasi password"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              id="agree"
+              type="checkbox"
+              checked={form.agree}
+              onChange={(e) => onChange({ ...form, agree: e.target.checked })}
+              className="h-4 w-4 rounded border-[var(--border)]"
+            />
+            <label htmlFor="agree" className="text-sm text-[var(--muted-foreground)]">
+              Saya setuju dengan Syarat & Ketentuan
+            </label>
+          </div>
+          <Button type="submit" className="w-full">Daftar</Button>
+        </form>
+        <div className="mt-4 text-center text-sm text-[var(--muted-foreground)]">
+          Sudah punya akun?{' '}
+          <button type="button" onClick={onLogin} className="text-[var(--primary)] hover:underline font-medium">
+            Login di sini
+          </button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

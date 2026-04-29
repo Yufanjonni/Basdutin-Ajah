@@ -1,6 +1,9 @@
 import type { FormEvent } from 'react'
-import { Field } from './Field'
-import { Modal } from './Modal'
+import { Button } from './ui/Button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/Dialog'
+import { Input } from './ui/Input'
+import { Label } from './ui/Label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/Select'
 import type { AppData } from '../types'
 
 export type ResourceKind = keyof AppData
@@ -16,8 +19,9 @@ export type ResourceDialogState = {
 type ResourceDialogProps = {
   state: ResourceDialogState
   data: AppData
+  open: boolean
   onDraftChange: (draft: ResourceDraft) => void
-  onClose: () => void
+  onOpenChange: (open: boolean) => void
   onSubmit: (event: FormEvent) => void
 }
 
@@ -32,18 +36,28 @@ const titles: Record<ResourceKind, string> = {
   promotions: 'Promosi',
 }
 
-export function ResourceDialog({ state, data, onDraftChange, onClose, onSubmit }: ResourceDialogProps) {
+export function ResourceDialog({ state, data, open, onDraftChange, onOpenChange, onSubmit }: ResourceDialogProps) {
   const title = `${state.mode === 'create' ? 'Tambah' : 'Update'} ${titles[state.kind]}`
 
   return (
-    <Modal title={title} onClose={onClose}>
-      <form className="form-stack modal-form" onSubmit={onSubmit}>
-        <Fields state={state} data={data} onDraftChange={onDraftChange} />
-        <button className="primary-button" type="submit">
-          {state.mode === 'create' ? 'Tambah' : 'Simpan'}
-        </button>
-      </form>
-    </Modal>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={onSubmit} className="grid gap-4">
+          <Fields state={state} data={data} onDraftChange={onDraftChange} />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Batal
+            </Button>
+            <Button type="submit">
+              {state.mode === 'create' ? 'Tambah' : 'Simpan'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -56,19 +70,19 @@ function Fields({
   data: AppData
   onDraftChange: (draft: ResourceDraft) => void
 }) {
-  const { kind, draft, mode } = state
+  const { kind } = state
 
   if (kind === 'venues') {
     return (
       <>
-        <TextField draft={draft} field="name" label="Nama Venue" onChange={onDraftChange} />
-        <TextField draft={draft} field="address" label="Alamat" onChange={onDraftChange} />
-        <TextField draft={draft} field="city" label="Kota" onChange={onDraftChange} />
-        <TextField draft={draft} field="capacity" label="Kapasitas" type="number" onChange={onDraftChange} />
-        <SelectField
-          draft={draft}
-          field="seatingType"
+        <FieldInput label="Nama Venue" value={state.draft.name} field="name" onChange={onDraftChange} required />
+        <FieldInput label="Alamat" value={state.draft.address} field="address" onChange={onDraftChange} required />
+        <FieldInput label="Kota" value={state.draft.city} field="city" onChange={onDraftChange} required />
+        <FieldInput label="Kapasitas" value={state.draft.capacity} field="capacity" type="number" onChange={onDraftChange} required />
+        <FieldSelect
           label="Jenis Seating"
+          value={state.draft.seatingType}
+          field="seatingType"
           options={['Nomor kursi', 'Festival', 'Campuran']}
           onChange={onDraftChange}
         />
@@ -79,27 +93,27 @@ function Fields({
   if (kind === 'events') {
     return (
       <>
-        <TextField draft={draft} field="title" label="Judul Acara" onChange={onDraftChange} />
-        <TextField draft={draft} field="date" label="Tanggal" onChange={onDraftChange} />
-        <TextField draft={draft} field="time" label="Waktu" type="time" onChange={onDraftChange} />
-        <SelectField
-          draft={draft}
-          field="venue"
+        <FieldInput label="Judul Acara" value={state.draft.title} field="title" onChange={onDraftChange} required />
+        <FieldInput label="Tanggal" value={state.draft.date} field="date" onChange={onDraftChange} placeholder="12 Mei 2026" required />
+        <FieldInput label="Waktu" value={state.draft.time} field="time" type="time" onChange={onDraftChange} required />
+        <FieldSelect
           label="Venue"
-          options={data.venues.map((venue) => venue.name)}
+          value={state.draft.venue}
+          field="venue"
+          options={data.venues.map((v) => v.name)}
           onChange={onDraftChange}
         />
-        <SelectField
-          draft={draft}
-          field="artist"
+        <FieldSelect
           label="Artist"
-          options={data.artists.map((artist) => artist.name)}
+          value={state.draft.artist}
+          field="artist"
+          options={data.artists.map((a) => a.name)}
           onChange={onDraftChange}
         />
-        <TextField draft={draft} field="category" label="Kategori Tiket" onChange={onDraftChange} />
-        <TextField draft={draft} field="price" label="Harga Mulai" type="number" onChange={onDraftChange} />
-        <TextField draft={draft} field="quota" label="Kuota" type="number" onChange={onDraftChange} />
-        <TextField draft={draft} field="description" label="Deskripsi" onChange={onDraftChange} />
+        <FieldInput label="Kategori Tiket" value={state.draft.category} field="category" onChange={onDraftChange} required />
+        <FieldInput label="Harga Mulai" value={state.draft.price} field="price" type="number" onChange={onDraftChange} required />
+        <FieldInput label="Kuota" value={state.draft.quota} field="quota" type="number" onChange={onDraftChange} required />
+        <FieldTextarea label="Deskripsi" value={state.draft.description} field="description" onChange={onDraftChange} />
       </>
     )
   }
@@ -107,9 +121,9 @@ function Fields({
   if (kind === 'artists') {
     return (
       <>
-        <TextField draft={draft} field="name" label="Name" onChange={onDraftChange} />
-        <TextField draft={draft} field="genre" label="Genre" required={false} onChange={onDraftChange} />
-        <TextField draft={draft} field="country" label="Negara" required={false} onChange={onDraftChange} />
+        <FieldInput label="Nama" value={state.draft.name} field="name" onChange={onDraftChange} required />
+        <FieldInput label="Genre" value={state.draft.genre} field="genre" onChange={onDraftChange} />
+        <FieldInput label="Negara" value={state.draft.country} field="country" onChange={onDraftChange} />
       </>
     )
   }
@@ -117,17 +131,23 @@ function Fields({
   if (kind === 'seats') {
     return (
       <>
-        <SelectField
-          draft={draft}
-          field="venue"
+        <FieldSelect
           label="Venue"
-          options={data.venues.map((venue) => venue.name)}
+          value={state.draft.venue}
+          field="venue"
+          options={data.venues.map((v) => v.name)}
           onChange={onDraftChange}
         />
-        <TextField draft={draft} field="section" label="Section" onChange={onDraftChange} />
-        <TextField draft={draft} field="row" label="Row" onChange={onDraftChange} />
-        <TextField draft={draft} field="number" label="Seat Number" onChange={onDraftChange} />
-        <SelectField draft={draft} field="status" label="Status" options={['Tersedia', 'Terisi']} onChange={onDraftChange} />
+        <FieldInput label="Section" value={state.draft.section} field="section" onChange={onDraftChange} required />
+        <FieldInput label="Row" value={state.draft.row} field="row" onChange={onDraftChange} required />
+        <FieldInput label="Seat Number" value={state.draft.number} field="number" onChange={onDraftChange} required />
+        <FieldSelect
+          label="Status"
+          value={state.draft.status}
+          field="status"
+          options={['Tersedia', 'Terisi']}
+          onChange={onDraftChange}
+        />
       </>
     )
   }
@@ -135,58 +155,36 @@ function Fields({
   if (kind === 'ticketCategories') {
     return (
       <>
-        <SelectField
-          draft={draft}
-          field="event"
+        <FieldSelect
           label="Event"
-          options={data.events.map((event) => event.title)}
+          value={state.draft.event}
+          field="event"
+          options={data.events.map((e) => e.title)}
           onChange={onDraftChange}
         />
-        <TextField draft={draft} field="name" label="Category Name" onChange={onDraftChange} />
-        <TextField draft={draft} field="quota" label="Quota" type="number" onChange={onDraftChange} />
-        <TextField draft={draft} field="price" label="Price" type="number" onChange={onDraftChange} />
+        <FieldInput label="Nama Kategori" value={state.draft.name} field="name" onChange={onDraftChange} required />
+        <FieldInput label="Harga" value={state.draft.price} field="price" type="number" onChange={onDraftChange} required />
+        <FieldInput label="Kuota" value={state.draft.quota} field="quota" type="number" onChange={onDraftChange} required />
       </>
     )
   }
 
-  if (kind === 'tickets') {
+  if (kind === 'promotions') {
     return (
       <>
-        {mode === 'update' && <TextField draft={draft} field="code" label="Kode Tiket" disabled onChange={onDraftChange} />}
-        {mode === 'create' && (
-          <SelectField
-            draft={draft}
-            field="orderCode"
-            label="Order"
-            options={data.orders.map((order) => `${order.code} - ${order.customer} - ${order.event}`)}
-            onChange={onDraftChange}
-          />
-        )}
-        {mode === 'create' && (
-          <SelectField
-            draft={draft}
-            field="category"
-            label="Kategori Tiket"
-            options={data.ticketCategories.map((category) => category.name)}
-            onChange={onDraftChange}
-          />
-        )}
-        {mode === 'create' && (
-          <SelectField
-            draft={draft}
-            field="seatCode"
-            label="Kursi"
-            options={['-', ...data.seats.filter((seat) => seat.status === 'Tersedia').map(getSeatCode)]}
-            onChange={onDraftChange}
-          />
-        )}
-        <SelectField
-          draft={draft}
-          field="status"
-          label="Status"
-          options={['Aktif', 'Dipakai', 'Dibatalkan']}
+        <FieldInput label="Kode Promo" value={state.draft.code} field="code" onChange={onDraftChange} required />
+        <FieldInput label="Judul" value={state.draft.title} field="title" onChange={onDraftChange} required />
+        <FieldSelect
+          label="Tipe Diskon"
+          value={state.draft.discountType}
+          field="discountType"
+          options={['Persentase', 'Nominal']}
           onChange={onDraftChange}
         />
+        <FieldInput label="Nilai" value={state.draft.value} field="value" onChange={onDraftChange} placeholder="20% atau 50000" required />
+        <FieldInput label="Tanggal Mulai" value={state.draft.startDate} field="startDate" type="date" onChange={onDraftChange} required />
+        <FieldInput label="Tanggal Berakhir" value={state.draft.endDate} field="endDate" type="date" onChange={onDraftChange} required />
+        <FieldInput label="Batas Penggunaan" value={state.draft.usageLimit} field="usageLimit" type="number" onChange={onDraftChange} required />
       </>
     )
   }
@@ -194,11 +192,17 @@ function Fields({
   if (kind === 'orders') {
     return (
       <>
-        <TextField draft={draft} field="code" label="Order ID" disabled onChange={onDraftChange} />
-        <SelectField
-          draft={draft}
+        <FieldInput label="Kode Order" value={state.draft.code} field="code" onChange={onDraftChange} required />
+        <FieldInput label="Tanggal" value={state.draft.orderDate} field="orderDate" onChange={onDraftChange} required />
+        <FieldInput label="Customer" value={state.draft.customer} field="customer" onChange={onDraftChange} required />
+        <FieldInput label="Event" value={state.draft.event} field="event" onChange={onDraftChange} required />
+        <FieldInput label="Kategori Tiket" value={state.draft.ticketCategory} field="ticketCategory" onChange={onDraftChange} required />
+        <FieldInput label="Jumlah" value={state.draft.quantity} field="quantity" type="number" onChange={onDraftChange} required />
+        <FieldInput label="Total" value={state.draft.total} field="total" type="number" onChange={onDraftChange} required />
+        <FieldSelect
+          label="Status"
+          value={state.draft.status}
           field="status"
-          label="Payment Status"
           options={['Menunggu', 'Dibayar', 'Dibatalkan']}
           onChange={onDraftChange}
         />
@@ -206,82 +210,135 @@ function Fields({
     )
   }
 
-  return (
-    <>
-      <TextField draft={draft} field="code" label="Kode Promo" onChange={onDraftChange} />
-      <TextField draft={draft} field="title" label="Nama Promosi" onChange={onDraftChange} />
-      <SelectField
-        draft={draft}
-        field="discountType"
-        label="Tipe Diskon"
-        options={['Persentase', 'Nominal']}
-        onChange={onDraftChange}
-      />
-      <TextField draft={draft} field="value" label="Nilai Diskon" onChange={onDraftChange} />
-      <TextField draft={draft} field="startDate" label="Tanggal Mulai" type="date" onChange={onDraftChange} />
-      <TextField draft={draft} field="endDate" label="Tanggal Berakhir" type="date" onChange={onDraftChange} />
-      <TextField draft={draft} field="usageLimit" label="Batas Penggunaan" type="number" onChange={onDraftChange} />
-    </>
-  )
+  return null
 }
 
-function TextField({
-  draft,
-  field,
+function FieldInput({
   label,
+  value,
+  field,
   type = 'text',
-  required = true,
-  disabled = false,
+  placeholder,
+  required,
   onChange,
 }: {
-  draft: ResourceDraft
-  field: string
   label: string
+  value: string
+  field: string
   type?: string
+  placeholder?: string
   required?: boolean
-  disabled?: boolean
   onChange: (draft: ResourceDraft) => void
 }) {
   return (
-    <Field label={label}>
-      <input
-        disabled={disabled}
-        required={required}
+    <div className="grid gap-2">
+      <Label htmlFor={field}>{label}</Label>
+      <Input
+        id={field}
         type={type}
-        value={draft[field] ?? ''}
-        onChange={(event) => onChange({ ...draft, [field]: event.target.value })}
+        value={value}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...{ [field]: e.target.value } } as ResourceDraft)}
+        placeholder={placeholder}
+        required={required}
       />
-    </Field>
+    </div>
   )
 }
 
-function SelectField({
-  draft,
-  field,
+function FieldTextarea({
   label,
+  value,
+  field,
+  onChange,
+}: {
+  label: string
+  value: string
+  field: string
+  onChange: (draft: ResourceDraft) => void
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={field}>{label}</Label>
+      <textarea
+        id={field}
+        value={value}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange({ ...{ [field]: e.target.value } } as ResourceDraft)}
+        className="flex min-h-[80px] w-full rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
+      />
+    </div>
+  )
+}
+
+function FieldSelect({
+  label,
+  value,
+  field,
   options,
   onChange,
 }: {
-  draft: ResourceDraft
-  field: string
   label: string
+  value: string
+  field: string
   options: string[]
   onChange: (draft: ResourceDraft) => void
 }) {
   return (
-    <Field label={label}>
-      <select required value={draft[field] ?? ''} onChange={(event) => onChange({ ...draft, [field]: event.target.value })}>
-        <option value="">Pilih</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </Field>
+    <div className="grid gap-2">
+      <Label htmlFor={field}>{label}</Label>
+      <Select value={value} onValueChange={(val) => onChange({ ...{ [field]: val } } as ResourceDraft)}>
+        <SelectTrigger id={field}>
+          <SelectValue placeholder={`Pilih ${label}`} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((opt) => (
+            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   )
 }
 
-function getSeatCode(seat: { section: string; row: string; number: string }) {
-  return `${seat.section}-${seat.row}-${seat.number}`
+// Helper functions kept from original
+export function createDefaultDraft(kind: ResourceKind, data: AppData): ResourceDraft {
+  if (kind === 'venues') return { name: '', address: '', city: '', capacity: '', seatingType: 'Nomor kursi' }
+  if (kind === 'events') return { title: '', date: '', time: '', venue: data.venues[0]?.name ?? '', artist: data.artists[0]?.name ?? '', category: '', price: '', quota: '', description: '', organizerId: String(data.events[0]?.organizerId ?? 2) }
+  if (kind === 'artists') return { name: '', genre: '', country: '' }
+  if (kind === 'seats') return { venue: data.venues[0]?.name ?? '', section: '', row: '', number: '', status: 'Tersedia' }
+  if (kind === 'ticketCategories') return { event: data.events[0]?.title ?? '', name: '', price: '', quota: '' }
+  if (kind === 'promotions') return { code: '', title: '', discountType: 'Persentase', value: '', startDate: '', endDate: '', usageLimit: '' }
+  if (kind === 'orders') return { code: '', orderDate: '', customer: '', event: '', ticketCategory: '', quantity: '', promoCode: '', total: '', status: 'Menunggu' }
+  return {}
+}
+
+export function createDraftFromData(kind: ResourceKind, appData: AppData, id: number): ResourceDraft {
+  if (kind === 'venues') {
+    const v = appData.venues.find((x) => x.id === id)
+    return v ? { name: v.name, address: v.address, city: v.city, capacity: String(v.capacity), seatingType: v.seatingType } : {}
+  }
+  if (kind === 'events') {
+    const e = appData.events.find((x) => x.id === id)
+    return e ? { title: e.title, date: e.date, time: e.time, venue: e.venue, artist: e.artist, category: e.category, price: String(e.price), quota: String(e.quota), description: e.description, organizerId: String(e.organizerId) } : {}
+  }
+  if (kind === 'artists') {
+    const a = appData.artists.find((x) => x.id === id)
+    return a ? { name: a.name, genre: a.genre, country: a.country } : {}
+  }
+  if (kind === 'seats') {
+    const s = appData.seats.find((x) => x.id === id)
+    return s ? { venue: s.venue, section: s.section, row: s.row, number: s.number, status: s.status } : {}
+  }
+  if (kind === 'ticketCategories') {
+    const c = appData.ticketCategories.find((x) => x.id === id)
+    return c ? { event: c.event, name: c.name, price: String(c.price), quota: String(c.quota) } : {}
+  }
+  if (kind === 'promotions') {
+    const p = appData.promotions.find((x) => x.id === id)
+    return p ? { code: p.code, title: p.title, discountType: p.discountType, value: p.value, startDate: p.startDate, endDate: p.endDate, usageLimit: String(p.usageLimit) } : {}
+  }
+  if (kind === 'orders') {
+    const o = appData.orders.find((x) => x.id === id)
+    return o ? { code: o.code, orderDate: o.orderDate, customer: o.customer, event: o.event, ticketCategory: o.ticketCategory, quantity: String(o.quantity), promoCode: o.promoCode, total: String(o.total), status: o.status } : {}
+  }
+  return {}
 }

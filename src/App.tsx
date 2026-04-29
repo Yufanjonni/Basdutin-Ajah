@@ -1,22 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Modal } from './components/Modal'
+import { ConfirmModal } from './components/Modal'
 import { ResourceDialog, type ResourceDialogState, type ResourceKind } from './components/ResourceDialog'
 import { TopNav } from './components/TopNav'
 import { emptyRegisterForm, initialData, initialUsers } from './data/mockData'
-import { AuthLayout, LoginPanel, RegisterPanel, RolePanel } from './pages/AuthPages'
+import { AuthLayout, BrandSide, LoginPanel, RegisterPanel, RolePanel } from './pages/AuthPages'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { FeaturePage } from './pages/FeaturePages'
 import { DashboardPage, ProfilePage, type PasswordForm, type ProfileForm } from './pages/ProfilePages'
 import type { AppData, EventItem, Page, RegisterForm, Role, Toast, User } from './types'
 import {
-  applyResourceDraft,
   createDefaultDraft,
   createDraftFromData,
-  deleteResource as deleteResourceFromData,
-  getResourceName,
-  validateResourceDraft,
-} from './utils/resourceDrafts'
+} from './components/ResourceDialog'
+import { applyResourceDraft, deleteResource as deleteResourceFromData, getResourceName, validateResourceDraft } from './utils/resourceDrafts'
 import { loadStored, saveStored } from './utils/storage'
 import { validateRegister } from './utils/validation'
 
@@ -319,6 +316,7 @@ function App() {
 
         {!activeUser && page === 'login' && (
           <AuthLayout>
+            <BrandSide />
             <LoginPanel
               form={loginForm}
               onChange={setLoginForm}
@@ -330,12 +328,14 @@ function App() {
 
         {!activeUser && page === 'registerRole' && (
           <AuthLayout>
+            <BrandSide />
             <RolePanel onChoose={chooseRole} onLogin={() => navigate('login')} />
           </AuthLayout>
         )}
 
         {!activeUser && page === 'registerForm' && (
           <AuthLayout>
+            <BrandSide />
             <RegisterPanel
               form={registerForm}
               role={selectedRole}
@@ -399,28 +399,24 @@ function App() {
           <ResourceDialog
             state={resourceDialog}
             data={appData}
+            open={!!resourceDialog}
             onDraftChange={(draft) => setResourceDialog({ ...resourceDialog, draft })}
-            onClose={() => setResourceDialog(null)}
+            onOpenChange={(open) => !open && setResourceDialog(null)}
             onSubmit={submitResourceDialog}
           />
         )}
 
         {pendingDelete && (
-          <Modal title="Konfirmasi Penghapusan" onClose={() => setPendingDelete(null)}>
-            <div className="delete-confirmation">
-              <p>
-                Hapus {getResourceName(pendingDelete.kind, pendingDelete.id, appData)}?
-              </p>
-              <div className="action-row">
-                <button className="danger-button" type="button" onClick={confirmDeleteResource}>
-                  Hapus
-                </button>
-                <button className="secondary-button" type="button" onClick={() => setPendingDelete(null)}>
-                  Batal
-                </button>
-              </div>
-            </div>
-          </Modal>
+          <ConfirmModal
+            title="Konfirmasi Penghapusan"
+            description={`Hapus ${getResourceName(pendingDelete.kind, pendingDelete.id, appData)}?`}
+            open={!!pendingDelete}
+            onOpenChange={(open) => !open && setPendingDelete(null)}
+            onConfirm={() => {
+              confirmDeleteResource()
+              setPendingDelete(null)
+            }}
+          />
         )}
       </section>
     </main>

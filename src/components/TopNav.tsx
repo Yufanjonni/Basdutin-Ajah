@@ -1,4 +1,6 @@
+import { Bell, LogOut, Ticket } from 'lucide-react'
 import { getNavItems } from '../data/navigation'
+import { Button } from './ui/Button'
 import type { Page, User } from '../types'
 
 type TopNavProps = {
@@ -12,40 +14,45 @@ export function TopNav({ activeUser, page, onNavigate, onLogout }: TopNavProps) 
   const navItems = getNavItems(activeUser?.role)
 
   return (
-    <header className="top-nav">
-      <div className="nav-inner">
-        <button className="nav-brand" type="button" onClick={() => onNavigate(activeUser ? 'dashboard' : 'login')}>
-          <span className="nav-brand-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-            </svg>
-          </span>
-          <span className="nav-brand-text">TikTakTuk</span>
-        </button>
+    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--card)]">
+      <div className="flex h-16 items-center justify-between px-4 md:px-6 max-w-[1400px] mx-auto">
+        <Button 
+          variant="ghost" 
+          className="gap-2 font-semibold text-lg h-auto p-1.5"
+          onClick={() => onNavigate(activeUser ? 'dashboard' : 'login')}
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--primary)] text-[var(--primary-foreground)]">
+            <Ticket className="h-4 w-4" />
+          </div>
+          <span className="hidden sm:inline">TikTakTuk</span>
+        </Button>
 
-        <nav className="nav-menu" aria-label="Navigasi utama">
-          {navItems.map((item) => (
-            <button
-              className={page === item.page ? 'active' : ''}
-              key={item.page}
-              type="button"
-              onClick={() => onNavigate(item.page)}
+        {activeUser && (
+          <nav className="flex items-center gap-1">
+            {navItems.map((item) => (
+              <Button
+                key={item.page}
+                variant={page === item.page ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => onNavigate(item.page)}
+              >
+                {item.label}
+              </Button>
+            ))}
+            <Button variant="ghost" size="icon" className="ml-1">
+              <Bell className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1.5 text-[var(--muted-foreground)]"
+              onClick={onLogout}
             >
-              {item.label}
-            </button>
-          ))}
-          {activeUser && (
-            <button type="button" onClick={onLogout} className="logout-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              <span>Logout</span>
-            </button>
-          )}
-        </nav>
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+          </nav>
+        )}
       </div>
     </header>
   )

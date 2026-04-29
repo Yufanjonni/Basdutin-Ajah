@@ -1,20 +1,19 @@
 import { useMemo, useState } from 'react'
-import { DataTable, type Column } from '../components/DataTable'
-import { PageHeader } from '../components/PageHeader'
-import type {
-  AppData,
-  Artist,
-  EventItem,
-  Order,
-  Page,
-  Promotion,
-  Role,
-  Seat,
-  Ticket,
-  TicketCategory,
-  User,
-  Venue,
-} from '../types'
+import { Plus, Search } from 'lucide-react'
+import { Button } from '../components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
+import { Input } from '../components/ui/Input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/Table'
+import type { ReactNode } from 'react'
+import type { AppData, Artist, EventItem, Order, Page, Promotion, Role, Seat, Ticket, TicketCategory, User, Venue } from '../types'
 import { formatCurrency } from '../utils/format'
 import { getSeatCode } from '../utils/resourceDrafts'
 
@@ -62,10 +61,10 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
     return (
       <TablePage
         title="Artis"
+        description="Kelola data artis"
         data={[...data.artists].sort((a, b) => a.name.localeCompare(b.name))}
         columns={artistColumns}
         canCreate={user.role === 'admin'}
-        canEdit={user.role === 'admin'}
         onAdd={() => onAdd('artists')}
         onUpdate={(item) => onUpdate('artists', item.id)}
         onDelete={(item) => onDelete('artists', item.id)}
@@ -77,14 +76,13 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
     return (
       <TablePage
         title="Manajemen Kursi"
+        description="Kelola kursi venue"
         data={data.seats}
         columns={seatColumns}
         canCreate={user.role !== 'customer'}
-        canEdit={user.role !== 'customer'}
         onAdd={() => onAdd('seats')}
         onUpdate={(item) => onUpdate('seats', item.id)}
         onDelete={(item) => onDelete('seats', item.id)}
-        isDeleteDisabled={(item) => item.status === 'Terisi'}
         stats={[
           { label: 'Total', value: String(data.seats.length) },
           { label: 'Tersedia', value: String(data.seats.filter((seat) => seat.status === 'Tersedia').length) },
@@ -98,10 +96,10 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
     return (
       <TablePage
         title="Kategori Tiket"
+        description="Kelola kategori dan harga tiket"
         data={[...data.ticketCategories].sort((a, b) => `${a.event}${a.name}`.localeCompare(`${b.event}${b.name}`))}
         columns={ticketCategoryColumns}
         canCreate={user.role !== 'customer'}
-        canEdit={user.role !== 'customer'}
         onAdd={() => onAdd('ticketCategories')}
         onUpdate={(item) => onUpdate('ticketCategories', item.id)}
         onDelete={(item) => onDelete('ticketCategories', item.id)}
@@ -114,10 +112,10 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
     return (
       <TablePage
         title={page === 'myTickets' ? 'Tiket Saya' : page === 'ticketAssets' ? 'Tiket (Aset)' : 'Manajemen Tiket'}
+        description="Kelola data tiket"
         data={tickets}
         columns={ticketColumns}
         canCreate={user.role !== 'customer'}
-        canEdit={user.role === 'admin'}
         onAdd={() => onAdd('tickets')}
         onUpdate={(item) => onUpdate('tickets', item.id)}
         onDelete={(item) => onDelete('tickets', item.id)}
@@ -138,10 +136,10 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
     return (
       <TablePage
         title={page === 'myOrders' ? 'Pesanan' : page === 'orderAssets' ? 'Order (Aset)' : 'Semua Order'}
+        description="Kelola pesanan tiket"
         data={[...orders].sort((a, b) => b.id - a.id)}
         columns={orderColumns}
         canCreate={false}
-        canEdit={user.role === 'admin'}
         onAdd={() => onAdd('orders')}
         onUpdate={(item) => onUpdate('orders', item.id)}
         onDelete={(item) => onDelete('orders', item.id)}
@@ -161,11 +159,22 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
     <PromotionPage
       promotions={data.promotions}
       canCreate={user.role === 'admin'}
-      canEdit={user.role === 'admin'}
       onAdd={() => onAdd('promotions')}
       onUpdate={(item) => onUpdate('promotions', item.id)}
       onDelete={(item) => onDelete('promotions', item.id)}
     />
+  )
+}
+
+function PageHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 mb-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        {description && <p className="text-sm text-[var(--muted-foreground)] mt-0.5">{description}</p>}
+      </div>
+      {action}
+    </div>
   )
 }
 
@@ -182,85 +191,122 @@ type EventCatalogProps = {
 
 function EventCatalog({ events, role, title, canManage, onAdd, onUpdate, onDelete, onCheckout }: EventCatalogProps) {
   const [query, setQuery] = useState('')
-  const [venue, setVenue] = useState('Semua venue')
-  const [artist, setArtist] = useState('Semua artis')
+  const [venue, setVenue] = useState('all')
+  const [artist, setArtist] = useState('all')
   const venues = Array.from(new Set(events.map((event) => event.venue)))
   const artists = Array.from(new Set(events.map((event) => event.artist)))
   const filteredEvents = useMemo(
     () =>
       events.filter((event) => {
         const matchesQuery = `${event.title} ${event.artist}`.toLowerCase().includes(query.toLowerCase())
-        const matchesVenue = venue === 'Semua venue' || event.venue === venue
-        const matchesArtist = artist === 'Semua artis' || event.artist === artist
+        const matchesVenue = venue === 'all' || event.venue === venue
+        const matchesArtist = artist === 'all' || event.artist === artist
         return matchesQuery && matchesVenue && matchesArtist
       }),
     [artist, events, query, venue],
   )
 
   return (
-    <section className="content-page">
+    <div>
       <PageHeader
         title={title}
         action={
           canManage && (
-            <button className="primary-button" type="button" onClick={onAdd}>
+            <Button onClick={onAdd}>
+              <Plus className="h-4 w-4 mr-1" />
               Tambah Event
-            </button>
+            </Button>
           )
         }
       />
-      <div className="toolbar-row">
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari judul atau artis" />
-        <select value={venue} onChange={(event) => setVenue(event.target.value)}>
-          <option>Semua venue</option>
-          {venues.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
-        <select value={artist} onChange={(event) => setArtist(event.target.value)}>
-          <option>Semua artis</option>
-          {artists.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari judul atau artis"
+            className="pl-9"
+          />
+        </div>
+        <Select value={venue} onValueChange={setVenue}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Semua venue" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua venue</SelectItem>
+            {venues.map((item) => (
+              <SelectItem key={item} value={item}>{item}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={artist} onValueChange={setArtist}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Semua artis" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua artis</SelectItem>
+            {artists.map((item) => (
+              <SelectItem key={item} value={item}>{item}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-      <div className="card-grid">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredEvents.map((event) => (
-          <article className="resource-card" key={event.id}>
-            <div>
-              <h2>{event.title}</h2>
-              <p>{event.artist}</p>
-            </div>
-            <dl>
-              <Info label="Venue" value={event.venue} />
-              <Info label="Tanggal" value={event.date} />
-              <Info label="Waktu" value={event.time} />
-              <Info label="Kategori" value={event.category} />
-              <Info label="Harga" value={formatCurrency(event.price)} />
-              <Info label="Kuota" value={`${event.quota} tiket`} />
-            </dl>
-            <p>{event.description}</p>
-            <div className="action-row">
-              {role === 'customer' && (
-                <button className="primary-button" type="button" onClick={() => onCheckout(event)}>
-                  Beli Tiket
-                </button>
-              )}
-              {canManage && (
-                <>
-                  <button className="secondary-button" type="button" onClick={() => onUpdate(event.id)}>
-                    Update
-                  </button>
-                  <button className="danger-button" type="button" onClick={() => onDelete(event.id)}>
-                    Delete
-                  </button>
-                </>
-              )}
-            </div>
-          </article>
+          <Card key={event.id} className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg leading-tight">{event.title}</CardTitle>
+              <p className="text-sm text-[var(--muted-foreground)]">{event.artist}</p>
+            </CardHeader>
+            <CardContent className="grid gap-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">Venue</span>
+                <span className="font-medium">{event.venue}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">Tanggal</span>
+                <span className="font-medium">{event.date}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">Waktu</span>
+                <span className="font-medium">{event.time}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">Kategori</span>
+                <span className="font-medium">{event.category}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">Harga</span>
+                <span className="font-semibold text-[var(--primary)]">{formatCurrency(event.price)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">Kuota</span>
+                <span className="font-medium">{event.quota} tiket</span>
+              </div>
+              <p className="text-xs text-[var(--muted-foreground)] pt-2 border-t">{event.description}</p>
+              <div className="flex gap-2 pt-2">
+                {role === 'customer' && (
+                  <Button size="sm" className="flex-1" onClick={() => onCheckout(event)}>
+                    Beli Tiket
+                  </Button>
+                )}
+                {canManage && (
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => onUpdate(event.id)}>
+                      Update
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => onDelete(event.id)}>
+                      Delete
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
-    </section>
+    </div>
   )
 }
 
@@ -274,172 +320,222 @@ type VenuePageProps = {
 
 function VenuePage({ venues, canManage, onAdd, onUpdate, onDelete }: VenuePageProps) {
   const [query, setQuery] = useState('')
-  const [city, setCity] = useState('Semua kota')
-  const [seatingType, setSeatingType] = useState('Semua kursi')
+  const [city, setCity] = useState('all')
   const cities = Array.from(new Set(venues.map((venue) => venue.city)))
-  const seatingTypes = Array.from(new Set(venues.map((venue) => venue.seatingType)))
   const filteredVenues = venues.filter((venue) => {
     const matchesQuery = `${venue.name} ${venue.address}`.toLowerCase().includes(query.toLowerCase())
-    const matchesCity = city === 'Semua kota' || venue.city === city
-    const matchesSeating = seatingType === 'Semua kursi' || venue.seatingType === seatingType
-    return matchesQuery && matchesCity && matchesSeating
+    const matchesCity = city === 'all' || venue.city === city
+    return matchesQuery && matchesCity
   })
 
   return (
-    <section className="content-page">
+    <div>
       <PageHeader
         title={canManage ? 'Manajemen Venue' : 'Venue'}
         action={
           canManage && (
-            <button className="primary-button" type="button" onClick={onAdd}>
+            <Button onClick={onAdd}>
+              <Plus className="h-4 w-4 mr-1" />
               Tambah Venue
-            </button>
+            </Button>
           )
         }
       />
-      <div className="toolbar-row">
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama atau alamat" />
-        <select value={city} onChange={(event) => setCity(event.target.value)}>
-          <option>Semua kota</option>
-          {cities.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
-        <select value={seatingType} onChange={(event) => setSeatingType(event.target.value)}>
-          <option>Semua kursi</option>
-          {seatingTypes.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari nama atau alamat"
+            className="pl-9"
+          />
+        </div>
+        <Select value={city} onValueChange={setCity}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Semua kota" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua kota</SelectItem>
+            {cities.map((item) => (
+              <SelectItem key={item} value={item}>{item}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-      <div className="card-grid">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredVenues.map((venue) => (
-          <article className="resource-card" key={venue.id}>
-            <div>
-              <h2>{venue.name}</h2>
-              <p>{venue.address}</p>
-            </div>
-            <dl>
-              <Info label="Kota" value={venue.city} />
-              <Info label="Kapasitas" value={`${venue.capacity} orang`} />
-              <Info label="Tipe Kursi" value={venue.seatingType} />
-            </dl>
-            {canManage && (
-              <div className="action-row">
-                <button className="secondary-button" type="button" onClick={() => onUpdate(venue.id)}>
-                  Update
-                </button>
-                <button className="danger-button" type="button" onClick={() => onDelete(venue.id)}>
-                  Delete
-                </button>
+          <Card key={venue.id}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">{venue.name}</CardTitle>
+              <p className="text-sm text-[var(--muted-foreground)]">{venue.address}</p>
+            </CardHeader>
+            <CardContent className="grid gap-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">Kota</span>
+                <span className="font-medium">{venue.city}</span>
               </div>
-            )}
-          </article>
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">Kapasitas</span>
+                <span className="font-medium">{venue.capacity} orang</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">Tipe Kursi</span>
+                <span className="font-medium">{venue.seatingType}</span>
+              </div>
+              {canManage && (
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" size="sm" onClick={() => onUpdate(venue.id)}>
+                    Update
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => onDelete(venue.id)}>
+                    Delete
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         ))}
       </div>
-    </section>
+    </div>
   )
 }
 
 type TablePageProps<T extends { id: number }> = {
   title: string
+  description?: string
   data: T[]
   columns: Column<T>[]
   canCreate: boolean
-  canEdit: boolean
   onAdd: () => void
   onUpdate: (item: T) => void
   onDelete: (item: T) => void
   stats?: Array<{ label: string; value: string }>
   statusOptions?: string[]
   getStatus?: (item: T) => string
-  isDeleteDisabled?: (item: T) => boolean
 }
 
 function TablePage<T extends { id: number }>({
   title,
+  description,
   data,
   columns,
   canCreate,
-  canEdit,
   onAdd,
   onUpdate,
   onDelete,
   stats,
   statusOptions,
   getStatus,
-  isDeleteDisabled,
 }: TablePageProps<T>) {
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('Semua status')
+  const [status, setStatus] = useState('all')
   const filteredData = data.filter((item) => {
     const matchesQuery = JSON.stringify(item).toLowerCase().includes(query.toLowerCase())
-    const matchesStatus = status === 'Semua status' || getStatus?.(item) === status
+    const matchesStatus = status === 'all' || getStatus?.(item) === status
     return matchesQuery && matchesStatus
   })
 
   return (
-    <section className="content-page">
+    <div>
       <PageHeader
         title={title}
+        description={description}
         action={
           canCreate && (
-            <button className="primary-button" type="button" onClick={onAdd}>
+            <Button onClick={onAdd}>
+              <Plus className="h-4 w-4 mr-1" />
               Tambah Data
-            </button>
+            </Button>
           )
         }
       />
       {stats && (
-        <div className="stats-row">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
           {stats.map((stat) => (
-            <div className="stat-card" key={stat.label}>
-              <span>{stat.label}</span>
-              <strong>{stat.value}</strong>
-            </div>
+            <Card key={stat.label}>
+              <CardContent className="pt-6">
+                <div className="text-sm text-[var(--muted-foreground)]">{stat.label}</div>
+                <div className="text-2xl font-bold mt-1">{stat.value}</div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
-      <div className={statusOptions ? 'toolbar-row double' : 'toolbar-row single'}>
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari data" />
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari data"
+            className="pl-9"
+          />
+        </div>
         {statusOptions && (
-          <select value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option>Semua status</option>
-            {statusOptions.map((option) => (
-              <option key={option}>{option}</option>
-            ))}
-          </select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Semua status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua status</SelectItem>
+              {statusOptions.map((option) => (
+                <SelectItem key={option} value={option}>{option}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
       </div>
-      <DataTable
-        columns={columns}
-        data={filteredData}
-        actions={
-          canEdit
-            ? (item) => (
-                <div className="table-actions">
-                  <button className="small-button" type="button" onClick={() => onUpdate(item)}>
-                    Update
-                  </button>
-                  <button
-                    className="small-danger-button"
-                    disabled={isDeleteDisabled?.(item)}
-                    type="button"
-                    onClick={() => onDelete(item)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              )
-            : undefined
-        }
-      />
-    </section>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((column) => (
+                <TableHead key={column.key}>{column.label}</TableHead>
+              ))}
+              <TableHead className="w-[150px]">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredData.map((item) => (
+              <TableRow key={item.id}>
+                {columns.map((column) => (
+                  <TableCell key={column.key}>{column.render(item)}</TableCell>
+                ))}
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => onUpdate(item)}>
+                      Update
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => onDelete(item)}>
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {!filteredData.length && (
+              <TableRow>
+                <TableCell colSpan={columns.length + 1} className="text-center text-[var(--muted-foreground)]">
+                  Data tidak ditemukan
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   )
 }
 
+type Column<T> = {
+  key: string
+  label: string
+  render: (item: T) => ReactNode
+}
+
 const artistColumns: Column<Artist>[] = [
-  { key: 'id', label: 'Artist ID', render: (artist) => `ART-${artist.id}` },
+  { key: 'id', label: 'ID', render: (artist) => `ART-${artist.id}` },
   { key: 'name', label: 'Nama', render: (artist) => artist.name },
   { key: 'genre', label: 'Genre', render: (artist) => artist.genre },
   { key: 'country', label: 'Negara', render: (artist) => artist.country },
@@ -449,13 +545,13 @@ const seatColumns: Column<Seat>[] = [
   { key: 'venue', label: 'Venue', render: (seat) => seat.venue },
   { key: 'section', label: 'Section', render: (seat) => seat.section },
   { key: 'row', label: 'Row', render: (seat) => seat.row },
-  { key: 'number', label: 'Seat Number', render: (seat) => seat.number },
+  { key: 'number', label: 'No Kursi', render: (seat) => seat.number },
   { key: 'code', label: 'Kode', render: (seat) => getSeatCode(seat) },
-  { key: 'status', label: 'Status', render: (seat) => <StatusPill value={seat.status} /> },
+  { key: 'status', label: 'Status', render: (seat) => <StatusBadge value={seat.status} /> },
 ]
 
 const ticketCategoryColumns: Column<TicketCategory>[] = [
-  { key: 'id', label: 'Category ID', render: (category) => `CAT-${category.id}` },
+  { key: 'id', label: 'ID', render: (category) => `CAT-${category.id}` },
   { key: 'event', label: 'Event', render: (category) => category.event },
   { key: 'name', label: 'Kategori', render: (category) => category.name },
   { key: 'price', label: 'Harga', render: (category) => formatCurrency(category.price) },
@@ -469,7 +565,7 @@ const ticketColumns: Column<Ticket>[] = [
   { key: 'category', label: 'Kategori', render: (ticket) => ticket.category },
   { key: 'seatCode', label: 'Kursi', render: (ticket) => ticket.seatCode },
   { key: 'customer', label: 'Customer', render: (ticket) => ticket.customer },
-  { key: 'status', label: 'Status', render: (ticket) => <StatusPill value={ticket.status} /> },
+  { key: 'status', label: 'Status', render: (ticket) => <StatusBadge value={ticket.status} /> },
 ]
 
 const orderColumns: Column<Order>[] = [
@@ -481,7 +577,7 @@ const orderColumns: Column<Order>[] = [
   { key: 'quantity', label: 'Jumlah', render: (order) => order.quantity },
   { key: 'promoCode', label: 'Promo', render: (order) => order.promoCode },
   { key: 'total', label: 'Total', render: (order) => formatCurrency(order.total) },
-  { key: 'status', label: 'Status', render: (order) => <StatusPill value={order.status} /> },
+  { key: 'status', label: 'Status', render: (order) => <StatusBadge value={order.status} /> },
 ]
 
 const promotionColumns: Column<Promotion>[] = [
@@ -497,74 +593,92 @@ const promotionColumns: Column<Promotion>[] = [
 function PromotionPage({
   promotions,
   canCreate,
-  canEdit,
   onAdd,
   onUpdate,
   onDelete,
 }: {
   promotions: Promotion[]
   canCreate: boolean
-  canEdit: boolean
   onAdd: () => void
   onUpdate: (item: Promotion) => void
   onDelete: (item: Promotion) => void
 }) {
-  const [discountType, setDiscountType] = useState('Semua tipe')
+  const [discountType, setDiscountType] = useState('all')
   const data =
-    discountType === 'Semua tipe'
+    discountType === 'all'
       ? promotions
       : promotions.filter((promotion) => promotion.discountType === discountType)
 
   return (
-    <section className="content-page">
+    <div>
       <PageHeader
         title="Promosi"
         action={
           canCreate && (
-            <button className="primary-button" type="button" onClick={onAdd}>
+            <Button onClick={onAdd}>
+              <Plus className="h-4 w-4 mr-1" />
               Buat Promo
-            </button>
+            </Button>
           )
         }
       />
-      <div className="toolbar-row single">
-        <select value={discountType} onChange={(event) => setDiscountType(event.target.value)}>
-          <option>Semua tipe</option>
-          <option>Persentase</option>
-          <option>Nominal</option>
-        </select>
-      </div>
-      <DataTable
-        columns={promotionColumns}
-        data={data}
-        actions={
-          canEdit
-            ? (item) => (
-                <div className="table-actions">
-                  <button className="small-button" type="button" onClick={() => onUpdate(item)}>
-                    Update
-                  </button>
-                  <button className="small-danger-button" type="button" onClick={() => onDelete(item)}>
-                    Delete
-                  </button>
-                </div>
-              )
-            : undefined
-        }
-      />
-    </section>
-  )
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
+      <Select value={discountType} onValueChange={setDiscountType}>
+        <SelectTrigger className="w-[180px] mb-4">
+          <SelectValue placeholder="Semua tipe" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Semua tipe</SelectItem>
+          <SelectItem value="Persentase">Persentase</SelectItem>
+          <SelectItem value="Nominal">Nominal</SelectItem>
+        </SelectContent>
+      </Select>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {promotionColumns.map((column) => (
+                <TableHead key={column.key}>{column.label}</TableHead>
+              ))}
+              <TableHead className="w-[150px]">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((item) => (
+              <TableRow key={item.id}>
+                {promotionColumns.map((column) => (
+                  <TableCell key={column.key}>{column.render(item)}</TableCell>
+                ))}
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => onUpdate(item)}>
+                      Update
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => onDelete(item)}>
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   )
 }
 
-function StatusPill({ value }: { value: string }) {
-  return <span className="status-pill">{value}</span>
+function StatusBadge({ value }: { value: string }) {
+  const variant = value === 'Aktif' || value === 'Dibayar' || value === 'Tersedia' ? 'success' 
+    : value === 'Menunggu' || value === 'Dipakai' ? 'warning' 
+    : 'destructive'
+  
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+      ${variant === 'success' ? 'bg-[var(--success-light)] text-[var(--success)]' : ''}
+      ${variant === 'warning' ? 'bg-[var(--warning-light)] text-[var(--warning)]' : ''}
+      ${variant === 'destructive' ? 'bg-[var(--destructive-light)] text-[var(--destructive)]' : ''}
+    `}>
+      {value}
+    </span>
+  )
 }

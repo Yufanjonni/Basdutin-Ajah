@@ -1,14 +1,19 @@
+import { Ticket } from 'lucide-react'
+
 export function BrandPanel() {
   return (
-    <div className="brand-side">
-      <div className="brand-visual">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-        </svg>
+    <div className="flex flex-col gap-6">
+      <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg">
+        <Ticket className="h-8 w-8" />
       </div>
-      <h1>TikTakTuk</h1>
-      <p>Platform pemesanan tiket event terpercaya untuk pengalaman tak terlupakan.</p>
+      <div className="space-y-3">
+        <h1 className="text-4xl font-bold tracking-tight text-[var(--foreground)]">
+          TikTakTuk
+        </h1>
+        <p className="text-lg text-[var(--muted-foreground)] leading-relaxed max-w-md">
+          Platform pemesanan tiket event terpercaya. Temukan dan pesan tiket acara favorit Anda dengan mudah.
+        </p>
+      </div>
     </div>
   )
 }

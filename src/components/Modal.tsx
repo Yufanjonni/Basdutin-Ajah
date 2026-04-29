@@ -1,34 +1,73 @@
-import type { ReactNode } from 'react'
+import * as React from 'react'
+import { Button } from './ui/Button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from './ui/Dialog'
 
 type ModalProps = {
   title: string
-  children: ReactNode
-  onClose: () => void
+  description?: string
+  children: React.ReactNode
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-export function Modal({ title, children, onClose }: ModalProps) {
+export function Modal({ title, description, children, open, onOpenChange }: ModalProps) {
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <section 
-        className="modal-card" 
-        role="dialog" 
-        aria-modal="true" 
-        aria-labelledby="modal-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-header">
-          <h2 id="modal-title">{title}</h2>
-          <button className="modal-close" type="button" onClick={onClose} aria-label="Tutup">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-        <div className="modal-body">
-          {children}
-        </div>
-      </section>
-    </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
+        <div>{children}</div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+type ConfirmModalProps = {
+  title: string
+  description: string
+  confirmText?: string
+  cancelText?: string
+  variant?: 'default' | 'destructive'
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onConfirm: () => void
+}
+
+export function ConfirmModal({
+  title,
+  description,
+  confirmText = 'Hapus',
+  cancelText = 'Batal',
+  variant = 'destructive',
+  open,
+  onOpenChange,
+  onConfirm,
+}: ConfirmModalProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {cancelText}
+          </Button>
+          <Button variant={variant === 'destructive' ? 'destructive' : 'default'} onClick={onConfirm}>
+            {confirmText}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
