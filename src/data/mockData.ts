@@ -139,7 +139,7 @@ export const initialData: AppData = {
       city: 'Jakarta',
       address: 'Jl. Sudirman No. 17',
       capacity: 850,
-      seatingType: 'Nomor kursi',
+      hasReservedSeating: true,
     },
     {
       id: 2,
@@ -147,7 +147,7 @@ export const initialData: AppData = {
       city: 'Bandung',
       address: 'Jl. Braga No. 22',
       capacity: 520,
-      seatingType: 'Campuran',
+      hasReservedSeating: true,
     },
     {
       id: 3,
@@ -155,7 +155,7 @@ export const initialData: AppData = {
       city: 'Yogyakarta',
       address: 'Jl. Malioboro No. 8',
       capacity: 1800,
-      seatingType: 'Festival',
+      hasReservedSeating: false,
     },
     {
       id: 4,
@@ -163,7 +163,7 @@ export const initialData: AppData = {
       city: 'Surabaya',
       address: 'Jl. Pemuda No. 14',
       capacity: 960,
-      seatingType: 'Nomor kursi',
+      hasReservedSeating: true,
     },
     {
       id: 5,
@@ -171,7 +171,7 @@ export const initialData: AppData = {
       city: 'Semarang',
       address: 'Jl. Marina No. 6',
       capacity: 2400,
-      seatingType: 'Festival',
+      hasReservedSeating: false,
     },
   ],
   artists: [

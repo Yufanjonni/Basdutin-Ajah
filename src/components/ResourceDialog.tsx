@@ -28,22 +28,28 @@ const titles: Record<ResourceKind, string> = {
 }
 
 export function ResourceDialog({ state, data, open, onDraftChange, onOpenChange, onSubmit }: ResourceDialogProps) {
-  const title = `${state.mode === 'create' ? 'Tambah' : 'Update'} ${titles[state.kind]}`
+  const title =
+    state.kind === 'events'
+      ? state.mode === 'create'
+        ? 'Buat Acara Baru'
+        : 'Update Acara'
+      : `${state.mode === 'create' ? 'Tambah' : 'Update'} ${titles[state.kind]}`
+  const updateDraft = (draft: ResourceDraft) => onDraftChange({ ...state.draft, ...draft })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className={state.kind === 'events' ? 'sm:max-w-[720px]' : 'sm:max-w-[500px]'}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="grid gap-4">
-          <Fields state={state} data={data} onDraftChange={onDraftChange} />
+          <Fields state={state} data={data} onDraftChange={updateDraft} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Batal
             </Button>
             <Button type="submit">
-              {state.mode === 'create' ? 'Tambah' : 'Simpan'}
+              {state.kind === 'events' && state.mode === 'create' ? 'Buat Acara' : state.mode === 'create' ? 'Tambah' : 'Simpan'}
             </Button>
           </div>
         </form>
@@ -70,11 +76,10 @@ function Fields({
         <FieldInput label="Alamat" value={state.draft.address} field="address" onChange={onDraftChange} required />
         <FieldInput label="Kota" value={state.draft.city} field="city" onChange={onDraftChange} required />
         <FieldInput label="Kapasitas" value={state.draft.capacity} field="capacity" type="number" onChange={onDraftChange} required />
-        <FieldSelect
-          label="Jenis Seating"
-          value={state.draft.seatingType}
-          field="seatingType"
-          options={['Nomor kursi', 'Festival', 'Campuran']}
+        <FieldCheckbox
+          label="Has Reserved Seating"
+          checked={state.draft.hasReservedSeating === 'true' || state.draft.seatingType === 'Nomor kursi'}
+          field="hasReservedSeating"
           onChange={onDraftChange}
         />
       </>
@@ -83,29 +88,33 @@ function Fields({
 
   if (kind === 'events') {
     return (
-      <>
-        <FieldInput label="Judul Acara" value={state.draft.title} field="title" onChange={onDraftChange} required />
-        <FieldInput label="Tanggal" value={state.draft.date} field="date" onChange={onDraftChange} placeholder="12 Mei 2026" required />
-        <FieldInput label="Waktu" value={state.draft.time} field="time" type="time" onChange={onDraftChange} required />
-        <FieldSelect
-          label="Venue"
-          value={state.draft.venue}
-          field="venue"
-          options={data.venues.map((v) => v.name)}
-          onChange={onDraftChange}
-        />
-        <FieldSelect
-          label="Artist"
-          value={state.draft.artist}
-          field="artist"
-          options={data.artists.map((a) => a.name)}
-          onChange={onDraftChange}
-        />
-        <FieldInput label="Kategori Tiket" value={state.draft.category} field="category" onChange={onDraftChange} required />
-        <FieldInput label="Harga Mulai" value={state.draft.price} field="price" type="number" onChange={onDraftChange} required />
-        <FieldInput label="Kuota" value={state.draft.quota} field="quota" type="number" onChange={onDraftChange} required />
-        <FieldTextarea label="Deskripsi" value={state.draft.description} field="description" onChange={onDraftChange} />
-      </>
+      <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-4">
+          <FieldInput label="Judul Acara (Event_Title)" value={state.draft.title} field="title" onChange={onDraftChange} required />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FieldInput label="Tanggal (Date)" value={state.draft.date} field="date" type="date" onChange={onDraftChange} required />
+            <FieldInput label="Waktu (Time)" value={state.draft.time} field="time" type="time" onChange={onDraftChange} required />
+          </div>
+          <FieldSelect
+            label="Venue (Venue_ID)"
+            value={state.draft.venue}
+            field="venue"
+            options={data.venues.map((v) => v.name)}
+            onChange={onDraftChange}
+          />
+          <FieldPillSelect
+            label="Artis (Event_Artist)"
+            value={state.draft.artist}
+            field="artist"
+            options={data.artists.map((a) => a.name)}
+            onChange={onDraftChange}
+          />
+        </div>
+        <div className="grid gap-4">
+          <TicketCategoryFields draft={state.draft} onChange={onDraftChange} />
+          <FieldTextarea label="Deskripsi" value={state.draft.description} field="description" onChange={onDraftChange} />
+        </div>
+      </div>
     )
   }
 
@@ -230,7 +239,7 @@ function TicketFields({
   
   const venueForEvent = data.events.find(e => e.title === eventName)?.venue || ''
   const venueData = data.venues.find(v => v.name === venueForEvent)
-  const isReservedSeating = venueData?.seatingType === 'Nomor kursi'
+  const isReservedSeating = venueHasReservedSeating(venueData)
   
   const availableSeats = isReservedSeating
     ? data.seats.filter(s => s.venue === venueForEvent && s.status === 'Tersedia').map(s => `${s.section}-${s.row}${s.number}`)
@@ -243,7 +252,7 @@ function TicketFields({
     const currentEvent = currentTicket?.event || ''
     const currentVenue = data.events.find(e => e.title === currentEvent)?.venue || ''
     const currentVenueData = data.venues.find(v => v.name === currentVenue)
-    const isCurrentReserved = currentVenueData?.seatingType === 'Nomor kursi'
+    const isCurrentReserved = venueHasReservedSeating(currentVenueData)
     
     const currentSeatOptions = isCurrentReserved
       ? data.seats.filter(s => s.venue === currentVenue && s.status === 'Tersedia').map(s => `${s.section}-${s.row}${s.number}`)
@@ -352,6 +361,33 @@ function FieldInput({
   )
 }
 
+function FieldCheckbox({
+  label,
+  checked,
+  field,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  field: string
+  onChange: (draft: ResourceDraft) => void
+}) {
+  return (
+    <label htmlFor={field} className="flex w-fit items-center gap-2 text-sm font-medium text-[var(--foreground)]">
+      <input
+        id={field}
+        type="checkbox"
+        checked={checked}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          onChange({ [field]: String(e.target.checked) } as ResourceDraft)
+        }
+        className="h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
+      />
+      {label}
+    </label>
+  )
+}
+
 function FieldTextarea({
   label,
   value,
@@ -374,6 +410,145 @@ function FieldTextarea({
       />
     </div>
   )
+}
+
+function venueHasReservedSeating(venue: AppData['venues'][number] | undefined) {
+  if (!venue) return false
+  if ('hasReservedSeating' in venue) return venue.hasReservedSeating
+  const legacyVenue = venue as AppData['venues'][number] & { seatingType?: string }
+  return legacyVenue.seatingType !== 'Festival'
+}
+
+type TicketCategoryDraft = {
+  name: string
+  price: string
+  quota: string
+}
+
+function TicketCategoryFields({
+  draft,
+  onChange,
+}: {
+  draft: ResourceDraft
+  onChange: (draft: ResourceDraft) => void
+}) {
+  const categories = parseTicketCategoryDrafts(draft.ticketCategoriesJson)
+
+  function updateCategories(nextCategories: TicketCategoryDraft[]) {
+    onChange({ ticketCategoriesJson: JSON.stringify(nextCategories) } as ResourceDraft)
+  }
+
+  return (
+    <div className="grid gap-2">
+      <Label>Kategori Tiket (Ticket_Category)</Label>
+      <div className="grid gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--muted)]/30 p-3">
+        {categories.map((category, index) => (
+          <div key={index} className="grid gap-2 rounded-md bg-white p-2 shadow-[var(--shadow-sm)]">
+            <div className="flex gap-2">
+              <Input
+                value={category.name}
+                placeholder="Regular"
+                onChange={(event) => {
+                  const next = [...categories]
+                  next[index] = { ...category, name: event.target.value }
+                  updateCategories(next)
+                }}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Hapus kategori"
+                onClick={() => updateCategories(categories.filter((_, itemIndex) => itemIndex !== index))}
+                disabled={categories.length === 1}
+                className="shrink-0 text-[var(--destructive)] hover:bg-[var(--destructive-light)] hover:text-[var(--destructive)]"
+              >
+                x
+              </Button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input
+                type="number"
+                min="0"
+                value={category.price}
+                placeholder="100000"
+                onChange={(event) => {
+                  const next = [...categories]
+                  next[index] = { ...category, price: event.target.value }
+                  updateCategories(next)
+                }}
+              />
+              <Input
+                type="number"
+                min="1"
+                value={category.quota}
+                placeholder="100"
+                onChange={(event) => {
+                  const next = [...categories]
+                  next[index] = { ...category, quota: event.target.value }
+                  updateCategories(next)
+                }}
+              />
+            </div>
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-fit text-[var(--primary)]"
+          onClick={() => updateCategories([...categories, { name: '', price: '0', quota: '1' }])}
+        >
+          + Tambah Kategori
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function FieldPillSelect({
+  label,
+  value,
+  field,
+  options,
+  onChange,
+}: {
+  label: string
+  value: string
+  field: string
+  options: string[]
+  onChange: (draft: ResourceDraft) => void
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange({ [field]: option } as ResourceDraft)}
+            className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+              value === option
+                ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]'
+                : 'border-[var(--border)] bg-white text-[var(--muted-foreground)] hover:bg-[var(--secondary)] hover:text-[var(--foreground)]'
+            }`}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function parseTicketCategoryDrafts(value: string | undefined): TicketCategoryDraft[] {
+  try {
+    const parsed = JSON.parse(value || '[]') as TicketCategoryDraft[]
+    return parsed.length ? parsed : [{ name: 'Regular', price: '0', quota: '1' }]
+  } catch {
+    return [{ name: 'Regular', price: '0', quota: '1' }]
+  }
 }
 
 function FieldSelect({

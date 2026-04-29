@@ -381,8 +381,8 @@ function VenuePage({ venues, canManage, onAdd, onUpdate, onDelete }: VenuePagePr
                 <span className="font-medium">{venue.capacity} orang</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--muted-foreground)]">Tipe Kursi</span>
-                <span className="font-medium">{venue.seatingType}</span>
+                <span className="text-[var(--muted-foreground)]">Reserved Seating</span>
+                <span className="font-medium">{venueHasReservedSeating(venue) ? 'Ya' : 'Tidak'}</span>
               </div>
               {canManage && (
                 <div className="flex gap-2 pt-2">
@@ -675,4 +675,10 @@ function StatusBadge({ value }: { value: string }) {
       {value}
     </span>
   )
+}
+
+function venueHasReservedSeating(venue: Venue) {
+  if ('hasReservedSeating' in venue) return venue.hasReservedSeating
+  const legacyVenue = venue as Venue & { seatingType?: string }
+  return legacyVenue.seatingType !== 'Festival'
 }

@@ -35,7 +35,7 @@ export function DashboardPage({ user, data, userCount, onProfile, onNavigate }: 
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg bg-[var(--primary)] p-6 text-[var(--primary-foreground)] shadow-[var(--shadow-md)] sm:p-8">
+      <div className="rounded-lg bg-[#0f172a] p-6 text-white shadow-md sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-white/70">
@@ -87,7 +87,7 @@ export function DashboardPage({ user, data, userCount, onProfile, onNavigate }: 
 }
 
 function AdminDashboardDetails({ data, onNavigate }: { data: AppData; onNavigate: (page: Page) => void }) {
-  const reservedVenues = data.venues.filter((venue) => venue.seatingType !== 'Festival').length
+  const reservedVenues = data.venues.filter((venue) => venueHasReservedSeating(venue)).length
   const largestCapacity = Math.max(...data.venues.map((venue) => venue.capacity), 0)
   const percentagePromos = data.promotions.filter((promo) => promo.discountType === 'Persentase')
   const nominalPromos = data.promotions.filter((promo) => promo.discountType === 'Nominal')
@@ -134,11 +134,11 @@ function OrganizerDashboardDetails({
   const events = data.events.filter((event) => eventTitles.includes(event.title)).slice(0, 3)
 
   return (
-    <Card className="overflow-hidden border-0 shadow-[var(--shadow-md)]">
-      <CardHeader className="flex-row items-start justify-between space-y-0 bg-slate-50/80">
+    <Card className="overflow-hidden border-0 shadow-md">
+      <CardHeader className="flex-row items-start justify-between space-y-0 bg-[#f8fafc]">
         <div>
           <CardTitle className="text-base">Performa Acara</CardTitle>
-          <p className="mt-1 text-xs text-[var(--muted-foreground)]">Status acara yang Anda kelola</p>
+          <p className="mt-1 text-xs text-[#64748b]">Status acara yang Anda kelola</p>
         </div>
         <Button variant="link" size="sm" onClick={() => onNavigate('myEvents')}>
           Lihat Semua
@@ -168,11 +168,11 @@ function CustomerDashboardDetails({
     .filter((event): event is EventItem => Boolean(event))
 
   return (
-    <Card className="overflow-hidden border-0 shadow-[var(--shadow-md)]">
-      <CardHeader className="flex-row items-start justify-between space-y-0 bg-slate-50/80">
+    <Card className="overflow-hidden border-0 shadow-md">
+      <CardHeader className="flex-row items-start justify-between space-y-0 bg-[#f8fafc]">
         <div>
           <CardTitle className="text-base">Tiket Mendatang</CardTitle>
-          <p className="mt-1 text-xs text-[var(--muted-foreground)]">Tiket pertunjukan yang akan datang</p>
+          <p className="mt-1 text-xs text-[#64748b]">Tiket pertunjukan yang akan datang</p>
         </div>
         <Button variant="link" size="sm" onClick={() => onNavigate('myTickets')}>
           Lihat Semua
@@ -201,23 +201,23 @@ function DashboardInfoCard({
   onAction: () => void
 }) {
   return (
-    <Card className="overflow-hidden border-0 shadow-[var(--shadow-md)]">
+    <Card className="overflow-hidden border-0 shadow-md">
       <div className={`h-1.5 ${accentClassName}`} />
-      <CardHeader className="flex-row items-start justify-between space-y-0 bg-slate-50/80">
+      <CardHeader className="flex-row items-start justify-between space-y-0 bg-[#f8fafc]">
         <div>
           <CardTitle className="text-lg">{title}</CardTitle>
-          <p className="mt-1 text-xs text-[var(--muted-foreground)]">Ringkasan operasional</p>
+          <p className="mt-1 text-xs text-[#64748b]">Ringkasan operasional</p>
         </div>
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#64748b] shadow-sm">
           <ArrowUpRight className="h-4 w-4" />
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="space-y-2">
           {rows.map(([label, value]) => (
-            <div key={label} className="flex items-center justify-between gap-4 rounded-md bg-slate-50 px-3 py-3 text-sm">
-              <span className="text-[var(--muted-foreground)]">{label}</span>
-              <span className="font-semibold text-[var(--foreground)]">{value}</span>
+            <div key={label} className="flex items-center justify-between gap-4 rounded-md bg-[#f8fafc] px-3 py-3 text-sm">
+              <span className="text-[#64748b]">{label}</span>
+              <span className="font-semibold text-[#0f0f0f]">{value}</span>
             </div>
           ))}
         </div>
@@ -231,20 +231,20 @@ function DashboardInfoCard({
 
 function EventSummaryRow({ event, label }: { event: EventItem; label: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-md border border-[var(--border)] bg-white px-3 py-3 shadow-[var(--shadow-sm)] hover:bg-slate-50">
+    <div className="flex items-center justify-between gap-4 rounded-md border border-[#e2e8f0] bg-white px-3 py-3 shadow-sm hover:bg-[#f8fafc]">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-semibold text-[var(--foreground)]">{event.title}</p>
-          <span className="rounded-full bg-[var(--success-light)] px-2 py-0.5 text-[10px] font-bold uppercase text-[var(--success)]">
+          <p className="truncate text-sm font-semibold text-[#0f0f0f]">{event.title}</p>
+          <span className="rounded-full bg-[#f0fdf4] px-2 py-0.5 text-[10px] font-bold uppercase text-[#22c55e]">
             {label}
           </span>
         </div>
-        <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--muted-foreground)]">
+        <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#64748b]">
           <span>{event.date}</span>
           <span>{event.venue}</span>
         </p>
       </div>
-      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
+      <ChevronRight className="h-4 w-4 shrink-0 text-[#64748b]" />
     </div>
   )
 }
@@ -558,4 +558,10 @@ function getDashboardStats(user: User, data: AppData, userCount: number) {
       iconClassName: 'bg-orange-50 text-orange-600',
     },
   ]
+}
+
+function venueHasReservedSeating(venue: AppData['venues'][number]) {
+  if ('hasReservedSeating' in venue) return venue.hasReservedSeating
+  const legacyVenue = venue as AppData['venues'][number] & { seatingType?: string }
+  return legacyVenue.seatingType !== 'Festival'
 }

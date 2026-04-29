@@ -2,7 +2,7 @@ import type { AppData, Artist, EventItem, Order, Promotion, Seat, Ticket, Ticket
 
 export function createDefaultDraft(kind: ResourceKind, data: AppData): ResourceDraft {
   if (kind === 'venues') {
-    return { name: '', address: '', city: '', capacity: '100', seatingType: 'Nomor kursi' }
+    return { name: '', address: '', city: '', capacity: '100', hasReservedSeating: 'true' }
   }
   if (kind === 'events') {
     return {
@@ -14,6 +14,7 @@ export function createDefaultDraft(kind: ResourceKind, data: AppData): ResourceD
       category: '',
       price: '0',
       quota: '1',
+      ticketCategoriesJson: JSON.stringify([{ name: 'Regular', price: '0', quota: '1' }]),
       description: '',
     }
   }
@@ -46,8 +47,28 @@ export function createDefaultDraft(kind: ResourceKind, data: AppData): ResourceD
 }
 
 export function createDraftFromData(kind: ResourceKind, data: AppData, id: number): ResourceDraft {
-  if (kind === 'venues') return toStringDraft(data.venues.find((item) => item.id === id))
-  if (kind === 'events') return toStringDraft(data.events.find((item) => item.id === id))
+  if (kind === 'venues') {
+    const venue = data.venues.find((item) => item.id === id)
+    const draft = toStringDraft(venue)
+    return { ...draft, hasReservedSeating: String(hasReservedSeating(venue)) }
+  }
+  if (kind === 'events') {
+    const event = data.events.find((item) => item.id === id)
+    const draft = toStringDraft(event)
+    const categories = data.ticketCategories
+      .filter((category) => category.event === event?.title)
+      .map((category) => ({
+        name: category.name,
+        price: String(category.price),
+        quota: String(category.quota),
+      }))
+    return {
+      ...draft,
+      ticketCategoriesJson: JSON.stringify(
+        categories.length ? categories : [{ name: event?.category ?? 'Regular', price: String(event?.price ?? 0), quota: String(event?.quota ?? 1) }],
+      ),
+    }
+  }
   if (kind === 'artists') return toStringDraft(data.artists.find((item) => item.id === id))
   if (kind === 'seats') return toStringDraft(data.seats.find((item) => item.id === id))
   if (kind === 'ticketCategories') return toStringDraft(data.ticketCategories.find((item) => item.id === id))
@@ -68,8 +89,14 @@ export function validateResourceDraft(state: ResourceDialogState, data: AppData)
     if (!draft.title.trim() || !draft.date.trim() || !draft.time.trim() || !draft.venue || !draft.artist) {
       return 'Seluruh field event wajib diisi.'
     }
-    if (Number(draft.price) < 0) return 'Harga tidak boleh negatif.'
-    if (Number(draft.quota) <= 0) return 'Kuota harus lebih dari 0.'
+    const categories = parseTicketCategories(draft.ticketCategoriesJson)
+    if (!categories.length) return 'Minimal satu kategori tiket wajib diisi.'
+    if (categories.some((category) => !category.name.trim())) return 'Nama kategori tiket wajib diisi.'
+    if (categories.some((category) => Number(category.price) < 0)) return 'Harga tidak boleh negatif.'
+    if (categories.some((category) => Number(category.quota) <= 0)) return 'Kuota harus lebih dari 0.'
+    const venue = data.venues.find((item) => item.name === draft.venue)
+    const totalQuota = categories.reduce((total, category) => total + Number(category.quota), 0)
+    if (venue && totalQuota > venue.capacity) return 'Total kuota kategori tiket tidak boleh melebihi kapasitas venue.'
   }
   if (kind === 'seats') {
     if (!draft.venue || !draft.section.trim() || !draft.row.trim() || !draft.number.trim()) {
@@ -127,7 +154,7 @@ export function applyResourceDraft(state: ResourceDialogState, data: AppData, us
       address: draft.address.trim(),
       city: draft.city.trim(),
       capacity: Number(draft.capacity),
-      seatingType: draft.seatingType as Venue['seatingType'],
+      hasReservedSeating: draft.hasReservedSeating === 'true',
     }
     return mode === 'update'
       ? { ...data, venues: data.venues.map((item) => (item.id === id ? value : item)) }
@@ -135,6 +162,9 @@ export function applyResourceDraft(state: ResourceDialogState, data: AppData, us
   }
 
   if (kind === 'events') {
+    const categories = parseTicketCategories(draft.ticketCategoriesJson)
+    const primaryCategory = categories[0] ?? { name: draft.category.trim(), price: draft.price, quota: draft.quota }
+    const oldEvent = mode === 'update' ? data.events.find((item) => item.id === id) : undefined
     const value: EventItem = {
       id: mode === 'update' && id ? id : nextId,
       organizerId: mode === 'update' ? data.events.find((item) => item.id === id)?.organizerId ?? user?.id ?? 2 : user?.id ?? 2,
@@ -143,14 +173,36 @@ export function applyResourceDraft(state: ResourceDialogState, data: AppData, us
       venue: draft.venue,
       date: draft.date.trim(),
       time: draft.time,
-      category: draft.category.trim(),
+      category: primaryCategory.name.trim(),
       description: draft.description.trim(),
-      price: Number(draft.price),
-      quota: Number(draft.quota),
+      price: Number(primaryCategory.price),
+      quota: categories.reduce((total, category) => total + Number(category.quota), 0),
     }
+    const existingCategoryIds = data.ticketCategories
+      .filter((item) => item.event === oldEvent?.title)
+      .map((item) => item.id)
+    const nextCategories: TicketCategory[] = categories.map((category, index) => ({
+      id: existingCategoryIds[index] ?? nextId + index + 1,
+      event: value.title,
+      name: category.name.trim(),
+      price: Number(category.price),
+      quota: Number(category.quota),
+    }))
+
     return mode === 'update'
-      ? { ...data, events: data.events.map((item) => (item.id === id ? value : item)) }
-      : { ...data, events: [value, ...data.events] }
+      ? {
+          ...data,
+          events: data.events.map((item) => (item.id === id ? value : item)),
+          ticketCategories: [
+            ...data.ticketCategories.filter((item) => item.event !== oldEvent?.title),
+            ...nextCategories,
+          ],
+        }
+      : {
+          ...data,
+          events: [value, ...data.events],
+          ticketCategories: [...nextCategories, ...data.ticketCategories],
+        }
   }
 
   if (kind === 'artists') {
@@ -292,4 +344,24 @@ function getOrderOption(order: Order) {
 function toStringDraft(item: unknown): ResourceDraft {
   if (!item || typeof item !== 'object') return {}
   return Object.fromEntries(Object.entries(item).map(([key, value]) => [key, String(value)]))
+}
+
+function parseTicketCategories(value: string | undefined) {
+  try {
+    const parsed = JSON.parse(value || '[]') as Array<{ name?: string; price?: string; quota?: string }>
+    return parsed.map((category) => ({
+      name: category.name ?? '',
+      price: category.price ?? '0',
+      quota: category.quota ?? '1',
+    }))
+  } catch {
+    return []
+  }
+}
+
+function hasReservedSeating(venue: Venue | undefined) {
+  if (!venue) return true
+  if ('hasReservedSeating' in venue) return venue.hasReservedSeating
+  const legacyVenue = venue as Venue & { seatingType?: string }
+  return legacyVenue.seatingType !== 'Festival'
 }

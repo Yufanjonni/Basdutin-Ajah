@@ -48,7 +48,7 @@ export type Venue = {
   city: string
   address: string
   capacity: number
-  seatingType: 'Nomor kursi' | 'Festival' | 'Campuran'
+  hasReservedSeating: boolean
 }
 
 export type Artist = {

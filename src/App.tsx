@@ -32,10 +32,12 @@ function getProfileForm(user: User): ProfileForm {
 }
 
 function App() {
-  const [page, setPage] = useState<Page>('login')
   const [users, setUsers] = useState<User[]>(() => loadStored('tiktaktuk-users', initialUsers))
   const [appData, setAppData] = useState<AppData>(() => loadStored('tiktaktuk-data', initialData))
   const [activeUserId, setActiveUserId] = useState<number | null>(() => loadStored('tiktaktuk-session', null))
+  const [page, setPage] = useState<Page>(() =>
+    activeUserId && users.some((user) => user.id === activeUserId) ? 'dashboard' : 'login',
+  )
   const [selectedRole, setSelectedRole] = useState<Role>('customer')
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
   const [registerForm, setRegisterForm] = useState<RegisterForm>(emptyRegisterForm)
