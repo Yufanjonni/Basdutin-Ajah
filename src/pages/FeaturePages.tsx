@@ -85,6 +85,7 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
         onAdd={() => onAdd('seats')}
         onUpdate={(item) => onUpdate('seats', item.id)}
         onDelete={(item) => onDelete('seats', item.id)}
+        isDeleteDisabled={(item) => item.status === 'Terisi'}
         stats={[
           { label: 'Total', value: String(data.seats.length) },
           { label: 'Tersedia', value: String(data.seats.filter((seat) => seat.status === 'Tersedia').length) },
@@ -98,7 +99,7 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
     return (
       <TablePage
         title="Kategori Tiket"
-        data={data.ticketCategories}
+        data={[...data.ticketCategories].sort((a, b) => `${a.event}${a.name}`.localeCompare(`${b.event}${b.name}`))}
         columns={ticketCategoryColumns}
         canCreate={user.role !== 'customer'}
         canEdit={user.role !== 'customer'}
@@ -121,22 +122,32 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
         onAdd={() => onAdd('tickets')}
         onUpdate={(item) => onUpdate('tickets', item.id)}
         onDelete={(item) => onDelete('tickets', item.id)}
+        statusOptions={['Aktif', 'Dipakai', 'Dibatalkan']}
+        getStatus={(item) => item.status}
       />
     )
   }
 
   if (page === 'allOrders' || page === 'orderAssets' || page === 'myOrders') {
-    const orders = page === 'myOrders' ? data.orders.filter((order) => order.customer === user.name) : data.orders
+    const organizerEvents = data.events.filter((event) => event.organizerId === user.id).map((event) => event.title)
+    const orders =
+      page === 'myOrders'
+        ? data.orders.filter((order) => order.customer === user.name)
+        : user.role === 'organizer'
+          ? data.orders.filter((order) => organizerEvents.includes(order.event))
+          : data.orders
     return (
       <TablePage
         title={page === 'myOrders' ? 'Pesanan' : page === 'orderAssets' ? 'Order (Aset)' : 'Semua Order'}
-        data={orders}
+        data={[...orders].sort((a, b) => b.id - a.id)}
         columns={orderColumns}
         canCreate={false}
         canEdit={user.role === 'admin'}
         onAdd={() => onAdd('orders')}
         onUpdate={(item) => onUpdate('orders', item.id)}
         onDelete={(item) => onDelete('orders', item.id)}
+        statusOptions={['Menunggu', 'Dibayar', 'Dibatalkan']}
+        getStatus={(item) => item.status}
         stats={[
           { label: 'Total Order', value: String(orders.length) },
           { label: 'Pending', value: String(orders.filter((order) => order.status === 'Menunggu').length) },
@@ -341,6 +352,9 @@ type TablePageProps<T extends { id: number }> = {
   onUpdate: (item: T) => void
   onDelete: (item: T) => void
   stats?: Array<{ label: string; value: string }>
+  statusOptions?: string[]
+  getStatus?: (item: T) => string
+  isDeleteDisabled?: (item: T) => boolean
 }
 
 function TablePage<T extends { id: number }>({
@@ -353,9 +367,17 @@ function TablePage<T extends { id: number }>({
   onUpdate,
   onDelete,
   stats,
+  statusOptions,
+  getStatus,
+  isDeleteDisabled,
 }: TablePageProps<T>) {
   const [query, setQuery] = useState('')
-  const filteredData = data.filter((item) => JSON.stringify(item).toLowerCase().includes(query.toLowerCase()))
+  const [status, setStatus] = useState('Semua status')
+  const filteredData = data.filter((item) => {
+    const matchesQuery = JSON.stringify(item).toLowerCase().includes(query.toLowerCase())
+    const matchesStatus = status === 'Semua status' || getStatus?.(item) === status
+    return matchesQuery && matchesStatus
+  })
 
   return (
     <section className="content-page">
@@ -379,8 +401,16 @@ function TablePage<T extends { id: number }>({
           ))}
         </div>
       )}
-      <div className="toolbar-row single">
+      <div className={statusOptions ? 'toolbar-row double' : 'toolbar-row single'}>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari data" />
+        {statusOptions && (
+          <select value={status} onChange={(event) => setStatus(event.target.value)}>
+            <option>Semua status</option>
+            {statusOptions.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
+        )}
       </div>
       <DataTable
         columns={columns}
@@ -392,7 +422,12 @@ function TablePage<T extends { id: number }>({
                   <button className="small-button" type="button" onClick={() => onUpdate(item)}>
                     Update
                   </button>
-                  <button className="small-danger-button" type="button" onClick={() => onDelete(item)}>
+                  <button
+                    className="small-danger-button"
+                    disabled={isDeleteDisabled?.(item)}
+                    type="button"
+                    onClick={() => onDelete(item)}
+                  >
                     Delete
                   </button>
                 </div>

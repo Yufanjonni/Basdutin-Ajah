@@ -19,6 +19,8 @@ const adminNav: NavItem[] = [
   { label: 'Semua Order', page: 'allOrders' },
   { label: 'Tiket (Aset)', page: 'ticketAssets' },
   { label: 'Order (Aset)', page: 'orderAssets' },
+  { label: 'Promosi', page: 'promotions' },
+  { label: 'Artis', page: 'artists' },
   { label: 'Profile', page: 'profile' },
 ]
 
@@ -32,6 +34,8 @@ const organizerNav: NavItem[] = [
   { label: 'Semua Order', page: 'allOrders' },
   { label: 'Tiket (Aset)', page: 'ticketAssets' },
   { label: 'Order (Aset)', page: 'orderAssets' },
+  { label: 'Promosi', page: 'promotions' },
+  { label: 'Artis', page: 'artists' },
   { label: 'Profile', page: 'profile' },
 ]
 

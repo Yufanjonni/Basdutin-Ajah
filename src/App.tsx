@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Modal } from './components/Modal'
 import { ResourceDialog, type ResourceDialogState, type ResourceKind } from './components/ResourceDialog'
@@ -17,6 +17,7 @@ import {
   getResourceName,
   validateResourceDraft,
 } from './utils/resourceDrafts'
+import { loadStored, saveStored } from './utils/storage'
 import { validateRegister } from './utils/validation'
 
 const emptyPasswordForm: PasswordForm = {
@@ -35,9 +36,9 @@ function getProfileForm(user: User): ProfileForm {
 
 function App() {
   const [page, setPage] = useState<Page>('login')
-  const [users, setUsers] = useState<User[]>(initialUsers)
-  const [appData, setAppData] = useState<AppData>(initialData)
-  const [activeUserId, setActiveUserId] = useState<number | null>(null)
+  const [users, setUsers] = useState<User[]>(() => loadStored('tiktaktuk-users', initialUsers))
+  const [appData, setAppData] = useState<AppData>(() => loadStored('tiktaktuk-data', initialData))
+  const [activeUserId, setActiveUserId] = useState<number | null>(() => loadStored('tiktaktuk-session', null))
   const [selectedRole, setSelectedRole] = useState<Role>('customer')
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
   const [registerForm, setRegisterForm] = useState<RegisterForm>(emptyRegisterForm)
@@ -56,6 +57,18 @@ function App() {
     () => users.find((user) => user.id === activeUserId) ?? null,
     [activeUserId, users],
   )
+
+  useEffect(() => {
+    saveStored('tiktaktuk-users', users)
+  }, [users])
+
+  useEffect(() => {
+    saveStored('tiktaktuk-data', appData)
+  }, [appData])
+
+  useEffect(() => {
+    saveStored('tiktaktuk-session', activeUserId)
+  }, [activeUserId])
 
   function navigate(nextPage: Page) {
     if (nextPage === 'profile' && activeUser) {
@@ -334,7 +347,9 @@ function App() {
           </AuthLayout>
         )}
 
-        {activeUser && page === 'dashboard' && <DashboardPage user={activeUser} onProfile={() => navigate('profile')} />}
+        {activeUser && page === 'dashboard' && (
+          <DashboardPage user={activeUser} data={appData} userCount={users.length} onProfile={() => navigate('profile')} />
+        )}
 
         {activeUser && page === 'profile' && (
           <ProfilePage

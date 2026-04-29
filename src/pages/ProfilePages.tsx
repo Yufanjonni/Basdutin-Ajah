@@ -3,7 +3,8 @@ import { Field } from '../components/Field'
 import { Modal } from '../components/Modal'
 import { PageHeader } from '../components/PageHeader'
 import { roleLabels } from '../data/mockData'
-import type { Role, User } from '../types'
+import type { AppData, Role, User } from '../types'
+import { formatCurrency } from '../utils/format'
 
 export type ProfileForm = {
   name: string
@@ -19,10 +20,14 @@ export type PasswordForm = {
 
 type DashboardPageProps = {
   user: User
+  data: AppData
+  userCount: number
   onProfile: () => void
 }
 
-export function DashboardPage({ user, onProfile }: DashboardPageProps) {
+export function DashboardPage({ user, data, userCount, onProfile }: DashboardPageProps) {
+  const stats = getDashboardStats(user, data, userCount)
+
   return (
     <section className="content-page">
       <PageHeader
@@ -34,6 +39,14 @@ export function DashboardPage({ user, onProfile }: DashboardPageProps) {
           </button>
         }
       />
+      <div className="stats-row wide">
+        {stats.map((stat) => (
+          <div className="stat-card" key={stat.label}>
+            <span>{stat.label}</span>
+            <strong>{stat.value}</strong>
+          </div>
+        ))}
+      </div>
       <ProfileInfo user={user} />
     </section>
   )
@@ -211,4 +224,34 @@ function Info({ label, value }: { label: string; value: string }) {
       <dd>{value}</dd>
     </div>
   )
+}
+
+function getDashboardStats(user: User, data: AppData, userCount: number) {
+  if (user.role === 'admin') {
+    return [
+      { label: 'User', value: String(userCount) },
+      { label: 'Venue', value: String(data.venues.length) },
+      { label: 'Event', value: String(data.events.length) },
+      { label: 'Revenue', value: formatCurrency(data.orders.reduce((total, order) => total + order.total, 0)) },
+    ]
+  }
+
+  if (user.role === 'organizer') {
+    const eventTitles = data.events.filter((event) => event.organizerId === user.id).map((event) => event.title)
+    const orders = data.orders.filter((order) => eventTitles.includes(order.event))
+    return [
+      { label: 'Event Saya', value: String(eventTitles.length) },
+      { label: 'Order', value: String(orders.length) },
+      { label: 'Tiket', value: String(data.tickets.filter((ticket) => eventTitles.includes(ticket.event)).length) },
+      { label: 'Revenue', value: formatCurrency(orders.reduce((total, order) => total + order.total, 0)) },
+    ]
+  }
+
+  const orders = data.orders.filter((order) => order.customer === user.name)
+  return [
+    { label: 'Tiket Saya', value: String(data.tickets.filter((ticket) => ticket.customer === user.name).length) },
+    { label: 'Pesanan', value: String(orders.length) },
+    { label: 'Dibayar', value: String(orders.filter((order) => order.status === 'Dibayar').length) },
+    { label: 'Total Belanja', value: formatCurrency(orders.reduce((total, order) => total + order.total, 0)) },
+  ]
 }

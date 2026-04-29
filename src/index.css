@@ -42,6 +42,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .app-shell {
   min-height: 100vh;
   background: var(--page);
@@ -214,6 +219,7 @@ button {
 }
 
 .field input,
+.field select,
 .toolbar-row input,
 .toolbar-row select {
   width: 100%;
@@ -235,6 +241,7 @@ button {
 }
 
 .field input:focus,
+.field select:focus,
 .toolbar-row input:focus,
 .toolbar-row select:focus {
   border-color: var(--accent);
@@ -471,6 +478,10 @@ dd {
   grid-template-columns: minmax(220px, 420px);
 }
 
+.toolbar-row.double {
+  grid-template-columns: minmax(220px, 420px) minmax(150px, 220px);
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -515,6 +526,10 @@ dd {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 180px));
   gap: 12px;
+}
+
+.stats-row.wide {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .stat-card {
@@ -596,6 +611,11 @@ dd {
   padding-top: 16px;
 }
 
+.total-row.compact {
+  border-top: 0;
+  padding-top: 0;
+}
+
 .total-row span {
   color: var(--muted);
   font-weight: 760;
@@ -617,6 +637,8 @@ dd {
 
 .modal-card {
   width: min(440px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--panel);
@@ -635,6 +657,22 @@ dd {
 .modal-head h2 {
   margin: 0;
   font-size: 22px;
+}
+
+.modal-form {
+  gap: 12px;
+}
+
+.delete-confirmation {
+  display: grid;
+  gap: 18px;
+}
+
+.delete-confirmation p {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 760;
 }
 
 @media (max-width: 980px) {
@@ -675,7 +713,9 @@ dd {
   }
 
   .toolbar-row,
-  .toolbar-row.single {
+  .toolbar-row.single,
+  .toolbar-row.double,
+  .stats-row.wide {
     grid-template-columns: 1fr;
   }
 
