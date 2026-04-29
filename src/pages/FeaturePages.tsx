@@ -322,11 +322,16 @@ type VenuePageProps = {
 function VenuePage({ venues, canManage, onAdd, onUpdate, onDelete }: VenuePageProps) {
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('all')
+  const [reserved, setReserved] = useState('all')
   const cities = Array.from(new Set(venues.map((venue) => venue.city)))
   const filteredVenues = venues.filter((venue) => {
     const matchesQuery = `${venue.name} ${venue.address}`.toLowerCase().includes(query.toLowerCase())
     const matchesCity = city === 'all' || venue.city === city
-    return matchesQuery && matchesCity
+    const matchesReserved =
+      reserved === 'all' ||
+      (reserved === 'reserved' && venueHasReservedSeating(venue)) ||
+      (reserved === 'non-reserved' && !venueHasReservedSeating(venue))
+    return matchesQuery && matchesCity && matchesReserved
   })
 
   return (
@@ -363,6 +368,16 @@ function VenuePage({ venues, canManage, onAdd, onUpdate, onDelete }: VenuePagePr
             ))}
           </SelectContent>
         </Select>
+        <Select value={reserved} onValueChange={setReserved}>
+          <SelectTrigger className="w-full sm:w-[220px]">
+            <SelectValue placeholder="Reserved seating" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua seating</SelectItem>
+            <SelectItem value="reserved">Has Reserved Seating</SelectItem>
+            <SelectItem value="non-reserved">Tanpa Reserved Seating</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredVenues.map((venue) => (
@@ -381,7 +396,7 @@ function VenuePage({ venues, canManage, onAdd, onUpdate, onDelete }: VenuePagePr
                 <span className="font-medium">{venue.capacity} orang</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--muted-foreground)]">Reserved Seating</span>
+                <span className="text-[#64748b]">Reserved Seating</span>
                 <span className="font-medium">{venueHasReservedSeating(venue) ? 'Ya' : 'Tidak'}</span>
               </div>
               {canManage && (
