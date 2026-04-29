@@ -50,6 +50,9 @@ export function DashboardPage({ user, data, userCount, onProfile, onNavigate }: 
                 <Button variant="secondary" size="sm" onClick={() => onNavigate('venues')}>
                   Kelola Venue
                 </Button>
+                <Button variant="secondary" size="sm" onClick={() => onNavigate('events')}>
+                  Kelola Acara
+                </Button>
                 <Button variant="secondary" size="sm" onClick={() => onNavigate('promotions')}>
                   Kelola Promosi
                 </Button>
@@ -87,7 +90,7 @@ export function DashboardPage({ user, data, userCount, onProfile, onNavigate }: 
 }
 
 function AdminDashboardDetails({ data, onNavigate }: { data: AppData; onNavigate: (page: Page) => void }) {
-  const reservedVenues = data.venues.filter((venue) => venueHasReservedSeating(venue)).length
+  const reservedVenues = data.venues.filter(venueHasReservedSeating).length
   const largestCapacity = Math.max(...data.venues.map((venue) => venue.capacity), 0)
   const percentagePromos = data.promotions.filter((promo) => promo.discountType === 'Persentase')
   const nominalPromos = data.promotions.filter((promo) => promo.discountType === 'Nominal')
@@ -119,6 +122,12 @@ function AdminDashboardDetails({ data, onNavigate }: { data: AppData; onNavigate
       />
     </div>
   )
+}
+
+function venueHasReservedSeating(venue: AppData['venues'][number]) {
+  if ('hasReservedSeating' in venue) return venue.hasReservedSeating
+  const legacyVenue = venue as AppData['venues'][number] & { seatingType?: string }
+  return legacyVenue.seatingType !== 'Festival'
 }
 
 function OrganizerDashboardDetails({
@@ -558,10 +567,4 @@ function getDashboardStats(user: User, data: AppData, userCount: number) {
       iconClassName: 'bg-orange-50 text-orange-600',
     },
   ]
-}
-
-function venueHasReservedSeating(venue: AppData['venues'][number]) {
-  if ('hasReservedSeating' in venue) return venue.hasReservedSeating
-  const legacyVenue = venue as AppData['venues'][number] & { seatingType?: string }
-  return legacyVenue.seatingType !== 'Festival'
 }

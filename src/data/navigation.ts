@@ -12,6 +12,7 @@ const guestNav: NavItem[] = [
 
 const adminNav: NavItem[] = [
   { label: 'Dashboard', page: 'dashboard' },
+  { label: 'Manajemen Event', page: 'events' },
   { label: 'Manajemen Venue', page: 'venues' },
   { label: 'Manajemen Kursi', page: 'seats' },
   { label: 'Kategori Tiket', page: 'ticketCategories' },

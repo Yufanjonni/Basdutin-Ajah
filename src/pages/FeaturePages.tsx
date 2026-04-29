@@ -36,7 +36,7 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
       <EventCatalog
         events={page === 'myEvents' ? data.events.filter((event) => event.organizerId === user.id) : data.events}
         role={user.role}
-        title={page === 'myEvents' ? 'Event Saya' : 'Cari Event'}
+        title={page === 'myEvents' ? 'Event Saya' : user.role === 'customer' ? 'Cari Event' : 'Manajemen Event'}
         canManage={user.role !== 'customer'}
         onAdd={() => onAdd('events')}
         onUpdate={(id) => onUpdate('events', id)}
@@ -215,7 +215,7 @@ function EventCatalog({ events, role, title, canManage, onAdd, onUpdate, onDelet
           canManage && (
             <Button onClick={onAdd}>
               <Plus className="h-4 w-4 mr-1" />
-              Tambah Event
+              Buat Acara
             </Button>
           )
         }
