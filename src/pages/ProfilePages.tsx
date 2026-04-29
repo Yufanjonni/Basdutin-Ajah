@@ -100,7 +100,6 @@ function AdminDashboardDetails({ data, onNavigate }: { data: AppData; onNavigate
     <div className="grid gap-4 lg:grid-cols-2">
       <DashboardInfoCard
         title="Infrastruktur Venue"
-        accentClassName="bg-blue-500"
         actionLabel="Kelola Venue"
         onAction={() => onNavigate('venues')}
         rows={[
@@ -111,7 +110,6 @@ function AdminDashboardDetails({ data, onNavigate }: { data: AppData; onNavigate
       />
       <DashboardInfoCard
         title="Marketing & Promosi"
-        accentClassName="bg-orange-500"
         actionLabel="Kelola Promosi"
         onAction={() => onNavigate('promotions')}
         rows={[
@@ -199,19 +197,16 @@ function CustomerDashboardDetails({
 function DashboardInfoCard({
   title,
   rows,
-  accentClassName,
   actionLabel,
   onAction,
 }: {
   title: string
   rows: Array<[string, string]>
-  accentClassName: string
   actionLabel: string
   onAction: () => void
 }) {
   return (
     <Card className="overflow-hidden border-0 shadow-md">
-      <div className={`h-1.5 ${accentClassName}`} />
       <CardHeader className="flex-row items-start justify-between space-y-0 bg-[#f8fafc]">
         <div>
           <CardTitle className="text-lg">{title}</CardTitle>

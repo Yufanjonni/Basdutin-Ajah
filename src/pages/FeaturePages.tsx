@@ -660,21 +660,18 @@ function PromotionPage({
             label: 'Total Promo',
             value: String(promotions.length),
             icon: <Percent className="h-5 w-5" />,
-            accentClassName: 'bg-[#2563eb]',
           },
           {
             label: 'Total Penggunaan',
             value: String(totalUsage),
             description: 'Semua kode promo',
             icon: <TicketCheck className="h-5 w-5" />,
-            accentClassName: 'bg-[#16a34a]',
           },
           {
             label: 'Tipe Persentase',
             value: String(percentageCount),
             description: `${promotions.length - percentageCount} nominal`,
             icon: <Percent className="h-5 w-5" />,
-            accentClassName: 'bg-[#7c3aed]',
           },
         ]}
       />

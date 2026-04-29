@@ -6,7 +6,6 @@ type StatCard = {
   value: string
   description?: string
   icon?: ReactNode
-  accentClassName?: string
   surfaceClassName?: string
   iconClassName?: string
 }
@@ -20,7 +19,6 @@ export function StatCards({ stats }: { stats: StatCard[] }) {
           className={`overflow-hidden border-0 shadow-[var(--shadow-md)] ${stat.surfaceClassName ?? 'bg-white'}`}
         >
           <CardContent className="relative flex min-h-[144px] items-start justify-between gap-4 p-6">
-            <div className={`absolute inset-x-0 top-0 h-1.5 ${stat.accentClassName ?? 'bg-[var(--primary)]'}`} />
             <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/45" />
             <div className="min-w-0">
               <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
