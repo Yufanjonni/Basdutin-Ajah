@@ -731,8 +731,10 @@ const ticketCategoryColumns: Column<TicketCategory>[] = [
 
 function getTicketColumns(data: AppData, showCustomer: boolean): Column<Ticket>[] {
   return [
-    { key: 'code', label: 'Kode', render: (ticket) => ticket.code },
+    { key: 'code', label: 'Kode', render: (ticket) => getDisplayTicketCode(data, ticket) },
+    { key: 'orderCode', label: 'Order', render: (ticket) => ticket.orderCode },
     { key: 'event', label: 'Event', render: (ticket) => ticket.event },
+    { key: 'schedule', label: 'Jadwal', render: (ticket) => getTicketSchedule(data, ticket) },
     { key: 'location', label: 'Lokasi', render: (ticket) => getTicketVenue(data, ticket) },
     { key: 'category', label: 'Kategori', render: (ticket) => ticket.category },
     { key: 'price', label: 'Harga', render: (ticket) => formatCurrency(getTicketPrice(data, ticket)) },
@@ -913,6 +915,11 @@ function getTicketVenue(data: AppData, ticket: Ticket) {
   return data.events.find((event) => event.title === ticket.event)?.venue ?? '-'
 }
 
+function getTicketSchedule(data: AppData, ticket: Ticket) {
+  const event = data.events.find((item) => item.title === ticket.event)
+  return event ? `${event.date} ${event.time}` : '-'
+}
+
 function getTicketSeatPart(ticket: Ticket, part: 'section' | 'row' | 'number') {
   if (!ticket.seatCode || ticket.seatCode === '-') return '-'
   const [section = '-', row = '-', number = '-'] = ticket.seatCode.split('-')
@@ -925,4 +932,13 @@ function getTicketPrice(data: AppData, ticket: Ticket) {
   return data.ticketCategories.find(
     (category) => category.event === ticket.event && category.name === ticket.category,
   )?.price ?? 0
+}
+
+function getDisplayTicketCode(data: AppData, ticket: Ticket) {
+  if (ticket.code.includes('-EVT')) return ticket.code
+  const event = data.events.find((item) => item.title === ticket.event)
+  const eventPart = `EVT${String(event?.id ?? ticket.id).padStart(3, '0')}`
+  const categoryPart = ticket.category.replace(/[^a-z0-9]/gi, '').toUpperCase() || 'GEN'
+  const ticketPart = String(ticket.id).padStart(3, '0')
+  return `TKT-${eventPart}-${categoryPart}-${ticketPart}`
 }

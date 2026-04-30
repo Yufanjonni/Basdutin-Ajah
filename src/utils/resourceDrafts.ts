@@ -271,9 +271,10 @@ export function applyResourceDraft(state: ResourceDialogState, data: AppData, us
     }
     const orderCode = draft.orderCode
     const order = data.orders.find((item) => item.code === orderCode)
+    const event = data.events.find((item) => item.title === order?.event)
     const value: Ticket = {
       id: nextId,
-      code: `TKT-${String(nextId).slice(-4)}`,
+      code: createTicketCode(nextId, event?.id, draft.category),
       orderCode,
       category: draft.category,
       seatCode: normalizeSeatCode(draft.seatCode),
@@ -384,4 +385,11 @@ function venueHasReservedSeating(venue: Venue | undefined) {
   if ('hasReservedSeating' in venue) return venue.hasReservedSeating
   const legacyVenue = venue as Venue & { seatingType?: string }
   return legacyVenue.seatingType !== 'Festival'
+}
+
+function createTicketCode(ticketId: number, eventId: number | undefined, category: string) {
+  const eventPart = `EVT${String(eventId ?? ticketId).padStart(3, '0')}`
+  const categoryPart = category.replace(/[^a-z0-9]/gi, '').toUpperCase() || 'GEN'
+  const ticketPart = String(ticketId).slice(-3).padStart(3, '0')
+  return `TKT-${eventPart}-${categoryPart}-${ticketPart}`
 }
