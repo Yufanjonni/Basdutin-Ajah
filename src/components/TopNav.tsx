@@ -1,4 +1,4 @@
-import { Bell, LogIn, LogOut, Menu, Ticket, X } from 'lucide-react'
+import { Bell, LogIn, LogOut, Menu, X } from 'lucide-react'
 import { getNavItems } from '../data/navigation'
 import { Button } from './ui/Button'
 import type { Page, User } from '../types'
@@ -22,13 +22,14 @@ export function TopNav({ activeUser, isGuest = false, page, onNavigate, onLogout
       <div className="flex h-12 items-center justify-between px-3 md:px-4 max-w-[1400px] mx-auto">
         <Button 
           variant="ghost" 
-          className="gap-2 font-semibold text-lg h-auto p-1"
+          className="h-9 w-9 p-1"
           onClick={() => onNavigate(activeUser ? 'dashboard' : isGuest ? 'events' : 'login')}
         >
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0f172a] text-white">
-            <Ticket className="h-3.5 w-3.5" />
-          </div>
-          <span className="hidden lg:inline text-[#0f0f0f]">TikTakTuk</span>
+          <img
+            src="/Tik.png"
+            alt="TikTakTuk"
+            className="h-6 w-6 object-contain"
+          />
         </Button>
 
         {showNav && (
