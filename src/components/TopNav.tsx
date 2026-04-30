@@ -34,7 +34,7 @@ export function TopNav({ activeUser, isGuest = false, page, onNavigate, onLogout
 
         {showNav && (
           <>
-            <nav className="hidden md:flex items-center gap-0.5 overflow-x-auto max-w-[calc(100vw-200px)]">
+            <nav className={`hidden md:flex items-center gap-0.5 overflow-x-auto max-w-[calc(100vw-260px)] ${!activeUser && isGuest ? 'absolute left-1/2 -translate-x-1/2' : ''}`}>
               {navItems.map((item) => (
                 <Button
                   key={item.page}
@@ -69,11 +69,21 @@ export function TopNav({ activeUser, isGuest = false, page, onNavigate, onLogout
                 variant="ghost" 
                 size="sm" 
                 className="h-8 gap-1 text-xs"
-                onClick={onLogout}
+                onClick={() => activeUser ? onLogout() : onNavigate('login')}
               >
                 {activeUser ? <LogOut className="h-3.5 w-3.5" /> : <LogIn className="h-3.5 w-3.5" />}
                 <span className="hidden lg:inline">{activeUser ? 'Logout' : 'Login'}</span>
               </Button>
+              {!activeUser && isGuest && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => onNavigate('registerRole')}
+                >
+                  Registrasi
+                </Button>
+              )}
             </div>
           </>
         )}
@@ -100,10 +110,15 @@ export function TopNav({ activeUser, isGuest = false, page, onNavigate, onLogout
                 </Button>
               ))}
               <hr className="my-2" />
-              <Button variant="ghost" className="justify-start text-red-600" onClick={onLogout}>
+              <Button variant="ghost" className="justify-start text-red-600" onClick={() => activeUser ? onLogout() : onNavigate('login')}>
                 {activeUser ? <LogOut className="h-4 w-4 mr-2" /> : <LogIn className="h-4 w-4 mr-2" />}
                 {activeUser ? 'Logout' : 'Login'}
               </Button>
+              {!activeUser && isGuest && (
+                <Button variant="secondary" className="justify-start" onClick={() => { onNavigate('registerRole'); setMenuOpen(false); }}>
+                  Registrasi
+                </Button>
+              )}
             </div>
           </div>
         </div>
