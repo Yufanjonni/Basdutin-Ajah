@@ -1,5 +1,5 @@
-import type { FormEvent } from 'react'
-import { ArrowUpRight, Calendar, ChevronRight, MapPin, Megaphone, Tag, Ticket, TrendingUp, Users, WalletCards } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+import { ArrowUpRight, Calendar, ChevronRight, Edit3, KeyRound, MapPin, Megaphone, Tag, Ticket, TrendingUp, Users, WalletCards } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/Dialog'
@@ -280,21 +280,40 @@ export function ProfilePage({
   onOpenPassword,
   onClosePassword,
 }: ProfilePageProps) {
+  const [editOpen, setEditOpen] = useState(false)
+  const submitProfile = (event: FormEvent) => {
+    onSubmit(event)
+    setEditOpen(false)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={onBack}>
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
           ← Kembali
         </Button>
       </div>
-      <h1 className="text-2xl font-bold">Edit Profil</h1>
+      <h1 className="text-2xl font-bold">Profil Saya</h1>
       
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Informasi Akun</CardTitle>
+      <div className="max-w-4xl">
+        <Card className="overflow-hidden border-0 shadow-[var(--shadow-md)]">
+          <CardHeader className="flex-row items-start justify-between space-y-0">
+            <div>
+              <CardTitle>Profil {roleLabels[user.role]}</CardTitle>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Informasi akun</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => setEditOpen(true)} className="gap-2">
+                <Edit3 className="h-4 w-4" />
+                Edit Profil
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={onOpenPassword} className="gap-2">
+                <KeyRound className="h-4 w-4" />
+                Ubah Password
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="grid gap-4">
+          <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label>Nama</Label>
               <div className="font-medium">{user.name}</div>
@@ -324,12 +343,12 @@ export function ProfilePage({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Perbarui Profil</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={onSubmit} className="grid gap-4">
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Edit Profil</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={submitProfile} className="grid gap-4">
               <ProfileFields role={user.role} form={form} onChange={onFormChange} />
               <div className="grid gap-2">
                 <Label>Username</Label>
@@ -337,13 +356,13 @@ export function ProfilePage({
               </div>
               <div className="flex gap-2">
                 <Button type="submit">Simpan</Button>
-                <Button type="button" variant="outline" onClick={onOpenPassword}>
-                  Ubah Password
+                <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
+                  Batal
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Dialog open={passwordOpen} onOpenChange={onClosePassword}>

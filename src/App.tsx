@@ -104,7 +104,7 @@ function App() {
 
   function showToast(type: Toast['type'], text: string) {
     setToast({ type, text })
-    setTimeout(() => setToast(null), 500)
+    setTimeout(() => setToast(null), 1000)
   }
 
   function chooseRole(role: Role) {

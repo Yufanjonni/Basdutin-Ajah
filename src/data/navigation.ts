@@ -55,6 +55,7 @@ const customerNav: NavItem[] = [
   { label: 'Promosi', page: 'promotions' },
   { label: 'Venue', page: 'venues' },
   { label: 'Artis', page: 'artists' },
+  { label: 'Profile', page: 'profile' },
 ]
 
 export function getNavItems(role?: Role | null) {
