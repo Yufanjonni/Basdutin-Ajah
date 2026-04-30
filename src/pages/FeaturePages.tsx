@@ -114,25 +114,16 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
   if (page === 'tickets' || page === 'ticketAssets' || page === 'myTickets') {
     const tickets = page === 'myTickets' ? data.tickets.filter((ticket) => ticket.customer === user.name) : data.tickets
     return (
-      <TablePage
+      <TicketTablePage
         title={page === 'myTickets' ? 'Tiket Saya' : page === 'ticketAssets' ? 'Tiket (Aset)' : 'Manajemen Tiket'}
         description="Kelola data tiket"
-        data={tickets}
-        columns={getTicketColumns(data, page !== 'myTickets')}
+        tickets={tickets}
+        appData={data}
         canCreate={user.role !== 'customer'}
         canEdit={user.role === 'admin'}
         onAdd={() => onAdd('tickets')}
         onUpdate={(item) => onUpdate('tickets', item.id)}
         onDelete={(item) => onDelete('tickets', item.id)}
-        statusOptions={['Aktif', 'Dipakai', 'Dibatalkan']}
-        getStatus={(item) => item.status}
-        searchPlaceholder="Cari kode tiket atau nama event"
-        getSearchText={(ticket) => `${ticket.code} ${ticket.event}`}
-        stats={[
-          { label: 'Total Tiket', value: String(tickets.length) },
-          { label: 'Valid', value: String(tickets.filter((ticket) => ticket.status === 'Aktif').length) },
-          { label: 'Terpakai', value: String(tickets.filter((ticket) => ticket.status === 'Dipakai').length) },
-        ]}
       />
     )
   }
@@ -561,6 +552,153 @@ function TablePage<T extends { id: number }>({
   )
 }
 
+function TicketTablePage({
+  title,
+  description,
+  tickets,
+  appData,
+  canCreate,
+  canEdit,
+  onAdd,
+  onUpdate,
+  onDelete,
+}: {
+  title: string
+  description?: string
+  tickets: Ticket[]
+  appData: AppData
+  canCreate: boolean
+  canEdit: boolean
+  onAdd: () => void
+  onUpdate: (item: Ticket) => void
+  onDelete: (item: Ticket) => void
+}) {
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState('all')
+  const [code, setCode] = useState('all')
+  const [event, setEvent] = useState('all')
+  const columns = getTicketColumns(appData, canEdit)
+  const codeOptions = Array.from(new Set(tickets.map((ticket) => ticket.code)))
+  const eventOptions = Array.from(new Set(tickets.map((ticket) => ticket.event)))
+  const filteredTickets = tickets.filter((ticket) => {
+    const matchesQuery = `${ticket.code} ${ticket.event}`.toLowerCase().includes(query.toLowerCase())
+    const matchesStatus = status === 'all' || ticket.status === status
+    const matchesCode = code === 'all' || ticket.code === code
+    const matchesEvent = event === 'all' || ticket.event === event
+    return matchesQuery && matchesStatus && matchesCode && matchesEvent
+  })
+
+  return (
+    <div>
+      <PageHeader
+        title={title}
+        description={description}
+        action={
+          canCreate && (
+            <Button onClick={onAdd}>
+              <Plus className="h-4 w-4 mr-1" />
+              Tambah Tiket
+            </Button>
+          )
+        }
+      />
+      <div className="mb-6">
+        <StatCards
+          stats={[
+            { label: 'Total Tiket', value: String(tickets.length) },
+            { label: 'Valid', value: String(tickets.filter((ticket) => ticket.status === 'Aktif').length) },
+            { label: 'Terpakai', value: String(tickets.filter((ticket) => ticket.status === 'Dipakai').length) },
+          ]}
+        />
+      </div>
+      <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_180px_220px_180px]">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari kode tiket atau nama event"
+            className="pl-9"
+          />
+        </div>
+        <Select value={code} onValueChange={setCode}>
+          <SelectTrigger>
+            <SelectValue placeholder="Semua kode" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua kode</SelectItem>
+            {codeOptions.map((item) => (
+              <SelectItem key={item} value={item}>{item}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={event} onValueChange={setEvent}>
+          <SelectTrigger>
+            <SelectValue placeholder="Semua event" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua event</SelectItem>
+            {eventOptions.map((item) => (
+              <SelectItem key={item} value={item}>{item}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger>
+            <SelectValue placeholder="Semua status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua status</SelectItem>
+            {['Aktif', 'Dipakai', 'Dibatalkan'].map((item) => (
+              <SelectItem key={item} value={item}>{item}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((column) => (
+                <TableHead key={column.key}>{column.label}</TableHead>
+              ))}
+              {canEdit && <TableHead className="w-[150px]">Aksi</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredTickets.map((ticket) => (
+              <TableRow key={ticket.id}>
+                {columns.map((column) => (
+                  <TableCell key={column.key}>{column.render(ticket)}</TableCell>
+                ))}
+                {canEdit && (
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => onUpdate(ticket)}>
+                        Update
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => onDelete(ticket)}>
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+            {!filteredTickets.length && (
+              <TableRow>
+                <TableCell colSpan={columns.length + (canEdit ? 1 : 0)} className="text-center text-[var(--muted-foreground)]">
+                  Data tidak ditemukan
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  )
+}
+
 type Column<T> = {
   key: string
   label: string
@@ -595,8 +733,9 @@ function getTicketColumns(data: AppData, showCustomer: boolean): Column<Ticket>[
   return [
     { key: 'code', label: 'Kode', render: (ticket) => ticket.code },
     { key: 'event', label: 'Event', render: (ticket) => ticket.event },
-    { key: 'venue', label: 'Venue', render: (ticket) => getTicketVenue(data, ticket) },
+    { key: 'location', label: 'Lokasi', render: (ticket) => getTicketVenue(data, ticket) },
     { key: 'category', label: 'Kategori', render: (ticket) => ticket.category },
+    { key: 'price', label: 'Harga', render: (ticket) => formatCurrency(getTicketPrice(data, ticket)) },
     { key: 'section', label: 'Section', render: (ticket) => getTicketSeatPart(ticket, 'section') },
     { key: 'row', label: 'Row', render: (ticket) => getTicketSeatPart(ticket, 'row') },
     { key: 'number', label: 'No Kursi', render: (ticket) => getTicketSeatPart(ticket, 'number') },
@@ -780,4 +919,10 @@ function getTicketSeatPart(ticket: Ticket, part: 'section' | 'row' | 'number') {
   if (part === 'section') return section
   if (part === 'row') return row
   return number
+}
+
+function getTicketPrice(data: AppData, ticket: Ticket) {
+  return data.ticketCategories.find(
+    (category) => category.event === ticket.event && category.name === ticket.category,
+  )?.price ?? 0
 }
