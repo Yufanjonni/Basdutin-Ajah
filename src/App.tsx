@@ -23,6 +23,18 @@ const emptyPasswordForm: PasswordForm = {
   confirmPassword: '',
 }
 
+const guestUser: User = {
+  id: 0,
+  role: 'guest',
+  name: 'Guest',
+  email: '',
+  phone: '',
+  username: 'guest',
+  password: '',
+}
+
+const publicPages: Page[] = ['events', 'promotions', 'venues', 'artists', 'ticketCategories']
+
 function getProfileForm(user: User): ProfileForm {
   return {
     name: user.name,
@@ -35,6 +47,7 @@ function App() {
   const [users, setUsers] = useState<User[]>(() => loadStored('tiktaktuk-users', initialUsers))
   const [appData, setAppData] = useState<AppData>(() => loadStored('tiktaktuk-data', initialData))
   const [activeUserId, setActiveUserId] = useState<number | null>(() => loadStored('tiktaktuk-session', null))
+  const [isGuest, setIsGuest] = useState(false)
   const [page, setPage] = useState<Page>(() =>
     activeUserId && users.some((user) => user.id === activeUserId) ? 'dashboard' : 'login',
   )
@@ -71,6 +84,17 @@ function App() {
   }, [activeUserId])
 
   function navigate(nextPage: Page) {
+    if (isGuest && nextPage === 'login') {
+      setIsGuest(false)
+      setPage('login')
+      setToast(null)
+      return
+    }
+    if (isGuest && !publicPages.includes(nextPage)) {
+      setPage('events')
+      setToast(null)
+      return
+    }
     if (nextPage === 'profile' && activeUser) {
       setProfileForm(getProfileForm(activeUser))
     }
@@ -104,9 +128,17 @@ function App() {
     }
 
     setActiveUserId(foundUser.id)
+    setIsGuest(false)
     setProfileForm(getProfileForm(foundUser))
     setLoginForm({ username: '', password: '' })
     setPage('dashboard')
+    setToast(null)
+  }
+
+  function loginAsGuest() {
+    setActiveUserId(null)
+    setIsGuest(true)
+    setPage('events')
     setToast(null)
   }
 
@@ -139,6 +171,7 @@ function App() {
 
   function logout() {
     setActiveUserId(null)
+    setIsGuest(false)
     setCheckoutEvent(null)
     setPage('login')
     setToast(null)
@@ -270,7 +303,7 @@ function App() {
         ...currentData.tickets,
         ...Array.from({ length: quantity }, (_, index) => ({
           id: orderId + index,
-          code: `TKT-${String(orderId + index).slice(-4)}`,
+          code: createTicketCode(orderId + index, checkoutEvent.id, checkoutCategory),
           orderCode,
           category: checkoutCategory,
           seatCode: checkoutSeats[index] ?? '-',
@@ -332,7 +365,7 @@ function App() {
 
   return (
     <main className="app-shell">
-      <TopNav activeUser={activeUser} page={page} onNavigate={navigate} onLogout={logout} />
+      <TopNav activeUser={activeUser} isGuest={isGuest} page={page} onNavigate={navigate} onLogout={logout} />
 
       <section className="page-area">
         {toast && <p className={`message ${toast.type}`}>{toast.text}</p>}
@@ -345,6 +378,7 @@ function App() {
               onChange={setLoginForm}
               onSubmit={handleLogin}
               onRegister={() => navigate('registerRole')}
+              onGuest={loginAsGuest}
             />
           </AuthLayout>
         )}
@@ -417,11 +451,12 @@ function App() {
           />
         )}
 
-        {activeUser && page !== 'dashboard' && page !== 'profile' && page !== 'checkout' && (
+        {((activeUser && page !== 'dashboard' && page !== 'profile' && page !== 'checkout') ||
+          (isGuest && publicPages.includes(page))) && (
           <FeaturePage
             page={page}
             data={appData}
-            user={activeUser}
+            user={activeUser ?? guestUser}
             onAdd={openCreateResource}
             onUpdate={openUpdateResource}
             onDelete={requestDeleteResource}
@@ -458,3 +493,10 @@ function App() {
 }
 
 export default App
+
+function createTicketCode(ticketId: number, eventId: number, category: string) {
+  const eventPart = `EVT${String(eventId).padStart(3, '0')}`
+  const categoryPart = category.replace(/[^a-z0-9]/gi, '').toUpperCase() || 'GEN'
+  const ticketPart = String(ticketId).slice(-3).padStart(3, '0')
+  return `TKT-${eventPart}-${categoryPart}-${ticketPart}`
+}

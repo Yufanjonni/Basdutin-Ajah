@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'organizer' | 'customer'
+export type Role = 'admin' | 'organizer' | 'customer' | 'guest'
 
 export type Page =
   | 'login'

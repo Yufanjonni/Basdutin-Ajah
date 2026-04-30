@@ -4,6 +4,7 @@ export const roleLabels = {
   admin: 'Admin',
   organizer: 'Penyelenggara',
   customer: 'Pelanggan',
+  guest: 'Guest',
 } as const
 
 export const emptyRegisterForm: RegisterForm = {

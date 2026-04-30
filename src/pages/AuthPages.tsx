@@ -42,9 +42,10 @@ type LoginPanelProps = {
   onChange: (value: LoginForm) => void
   onSubmit: (event: React.FormEvent) => void
   onRegister: () => void
+  onGuest: () => void
 }
 
-export function LoginPanel({ form, onChange, onSubmit, onRegister }: LoginPanelProps) {
+export function LoginPanel({ form, onChange, onSubmit, onRegister, onGuest }: LoginPanelProps) {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
@@ -75,6 +76,9 @@ export function LoginPanel({ form, onChange, onSubmit, onRegister }: LoginPanelP
             />
           </div>
           <Button type="submit" className="w-full">Masuk</Button>
+          <Button type="button" variant="outline" className="w-full" onClick={onGuest}>
+            Login as a Guest
+          </Button>
         </form>
         <div className="mt-4 text-center text-sm text-[var(--muted-foreground)]">
           Belum punya akun?{' '}

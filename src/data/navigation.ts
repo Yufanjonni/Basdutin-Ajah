@@ -5,9 +5,18 @@ export type NavItem = {
   page: Page
 }
 
-const guestNav: NavItem[] = [
+const visitorNav: NavItem[] = [
   { label: 'Login', page: 'login' },
   { label: 'Registrasi', page: 'registerRole' },
+]
+
+const guestNav: NavItem[] = [
+  { label: 'Cari Event', page: 'events' },
+  { label: 'Promosi', page: 'promotions' },
+  { label: 'Venue', page: 'venues' },
+  { label: 'Artis', page: 'artists' },
+  { label: 'Kategori Tiket', page: 'ticketCategories' },
+  { label: 'Login', page: 'login' },
 ]
 
 const adminNav: NavItem[] = [
@@ -51,7 +60,8 @@ const customerNav: NavItem[] = [
 ]
 
 export function getNavItems(role?: Role | null) {
-  if (!role) return guestNav
+  if (!role) return visitorNav
+  if (role === 'guest') return guestNav
   if (role === 'admin') return adminNav
   if (role === 'organizer') return organizerNav
   return customerNav

@@ -31,13 +31,17 @@ type FeaturePageProps = {
 }
 
 export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onCheckout }: FeaturePageProps) {
+  const canManageContent = user.role === 'admin' || user.role === 'organizer'
+  const canBuyTickets = user.role === 'customer'
+
   if (page === 'events' || page === 'myEvents') {
     return (
       <EventCatalog
         events={page === 'myEvents' ? data.events.filter((event) => event.organizerId === user.id) : data.events}
         role={user.role}
         title={page === 'myEvents' ? 'Event Saya' : user.role === 'customer' ? 'Cari Event' : 'Manajemen Event'}
-        canManage={user.role !== 'customer'}
+        canManage={canManageContent}
+        canBuy={canBuyTickets}
         onAdd={() => onAdd('events')}
         onUpdate={(id) => onUpdate('events', id)}
         onDelete={(id) => onDelete('events', id)}
@@ -50,7 +54,7 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
     return (
       <VenuePage
         venues={data.venues}
-        canManage={user.role !== 'customer'}
+        canManage={canManageContent}
         onAdd={() => onAdd('venues')}
         onUpdate={(id) => onUpdate('venues', id)}
         onDelete={(id) => onDelete('venues', id)}
@@ -81,8 +85,8 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
         description="Kelola kursi venue"
         data={data.seats}
         columns={seatColumns}
-        canCreate={user.role !== 'customer'}
-        canEdit={user.role !== 'customer'}
+        canCreate={canManageContent}
+        canEdit={canManageContent}
         onAdd={() => onAdd('seats')}
         onUpdate={(item) => onUpdate('seats', item.id)}
         onDelete={(item) => onDelete('seats', item.id)}
@@ -102,8 +106,8 @@ export function FeaturePage({ page, data, user, onAdd, onUpdate, onDelete, onChe
         description="Kelola kategori dan harga tiket"
         data={[...data.ticketCategories].sort((a, b) => `${a.event}${a.name}`.localeCompare(`${b.event}${b.name}`))}
         columns={ticketCategoryColumns}
-        canCreate={user.role !== 'customer'}
-        canEdit={user.role !== 'customer'}
+        canCreate={canManageContent}
+        canEdit={canManageContent}
         onAdd={() => onAdd('ticketCategories')}
         onUpdate={(item) => onUpdate('ticketCategories', item.id)}
         onDelete={(item) => onDelete('ticketCategories', item.id)}
@@ -190,13 +194,14 @@ type EventCatalogProps = {
   role: Role
   title: string
   canManage: boolean
+  canBuy: boolean
   onAdd: () => void
   onUpdate: (id: number) => void
   onDelete: (id: number) => void
   onCheckout: (event: EventItem) => void
 }
 
-function EventCatalog({ events, role, title, canManage, onAdd, onUpdate, onDelete, onCheckout }: EventCatalogProps) {
+function EventCatalog({ events, title, canManage, canBuy, onAdd, onUpdate, onDelete, onCheckout }: EventCatalogProps) {
   const [query, setQuery] = useState('')
   const [venue, setVenue] = useState('all')
   const [artist, setArtist] = useState('all')
@@ -293,7 +298,7 @@ function EventCatalog({ events, role, title, canManage, onAdd, onUpdate, onDelet
               </div>
               <p className="text-xs text-[var(--muted-foreground)] pt-2 border-t">{event.description}</p>
               <div className="flex gap-2 pt-2">
-                {role === 'customer' && (
+                {canBuy && (
                   <Button size="sm" className="flex-1" onClick={() => onCheckout(event)}>
                     Beli Tiket
                   </Button>
